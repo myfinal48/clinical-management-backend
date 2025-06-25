@@ -7,12 +7,15 @@ import jakarta.validation.constraints.PastOrPresent;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -36,8 +39,8 @@ public class Patient {
     @Column(nullable = false)
     private LocalDate dateOfBirth;
 
-    @NotBlank(message = "Gender cannot be blank")
-    private String gender; // Consider using an Enum (MALE, FEMALE, OTHER)
+    @Enumerated
+    private Gender gender;
 
     @NotBlank(message = "Address cannot be blank")
     private String address;
@@ -47,10 +50,10 @@ public class Patient {
     private String phoneNumber;
 
     @Email(message = "Email should be valid")
-    @Column(unique = true) // Email might be optional or not unique depending on requirements
+    @Column(unique = true) 
     private String email;
 
-    @Lob // Large Object for potentially long text
+    @Lob
     @Column(columnDefinition = "TEXT")
     private String medicalHistory;
 
@@ -73,14 +76,4 @@ public class Patient {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
-    // Relationships (to be added later)
-    // @OneToMany(mappedBy = "patient")
-    // private List<Appointment> appointments;
-
-    // @OneToMany(mappedBy = "patient")
-    // private List<Prescription> prescriptions;
-
-    // @OneToMany(mappedBy = "patient")
-    // private List<Invoice> invoices;
 }
