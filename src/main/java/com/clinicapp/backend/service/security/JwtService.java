@@ -18,9 +18,6 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // TODO: Externalize this secret key and make it much stronger!
-    // Generate a secure key, e.g., using: https://www.allkeysgenerator.com/Random/Security-Encryption-Key-Generator
-    // Store it securely, e.g., in application properties or environment variables.
     @Value("${application.security.jwt.secret-key:placeholderSecretKeyThatIsVeryLongAndSecure1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz}") // Example placeholder
     private String secretKeyString;
 
@@ -30,31 +27,21 @@ public class JwtService {
     @Value("${application.security.jwt.refresh-token.expiration}")
     private long refreshExpiration; // e.g., 604800000 for 7 days
 
-    /**
-     * Extracts the username (subject) from the JWT token.
-     */
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    /**
-     * Extracts a specific claim from the JWT token using a claims resolver function.
-     */
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
-    /**
-     * Generates a JWT token for the given UserDetails.
-     */
+  
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
     }
 
-    /**
-     * Generates a JWT token with extra claims for the given UserDetails.
-     */
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return buildToken(extraClaims, userDetails, jwtExpiration);
     }

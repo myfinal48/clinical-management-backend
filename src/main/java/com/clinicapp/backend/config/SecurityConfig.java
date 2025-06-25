@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod; // Import HttpMethod
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.core.GrantedAuthorityDefaults;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -43,6 +42,11 @@ public class SecurityConfig {
             "/swagger-ui.html"
     };
 
+    private static final String ADMIN_USERS_ENDPOINT = "/api/v1/admin/users/**";
+    private static final String PRESCRIPTIONS_ENDPOINT = "/api/v1/prescriptions/**";
+    private static final String ROLE_ADMIN = "ADMIN";
+    private static final String ROLE_DOCTOR = "DOCTOR";
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -54,14 +58,14 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll() // Allow WebSocket handshake/SockJS endpoint
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Explicitly allow ADMIN access to user endpoints here for diagnostics (Can be removed if @PreAuthorize works)
-                        .requestMatchers(HttpMethod.POST, "/api/v1/admin/users/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/admin/users/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/admin/users/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/admin/users/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/prescriptions/**").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/prescriptions/**").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/prescriptions/**").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/prescriptions").hasRole("DOCTOR")
+                        .requestMatchers(HttpMethod.POST, ADMIN_USERS_ENDPOINT).hasRole(ROLE_ADMIN)
+                        .requestMatchers(HttpMethod.PUT, ADMIN_USERS_ENDPOINT).hasRole(ROLE_ADMIN)
+                        .requestMatchers(HttpMethod.DELETE, ADMIN_USERS_ENDPOINT).hasRole(ROLE_ADMIN)
+                        .requestMatchers(HttpMethod.GET, ADMIN_USERS_ENDPOINT).hasRole(ROLE_ADMIN)
+                        .requestMatchers(HttpMethod.GET, PRESCRIPTIONS_ENDPOINT).hasRole(ROLE_DOCTOR)
+                        .requestMatchers(HttpMethod.PUT, PRESCRIPTIONS_ENDPOINT).hasRole(ROLE_DOCTOR)
+                        .requestMatchers(HttpMethod.POST, PRESCRIPTIONS_ENDPOINT).hasRole(ROLE_DOCTOR)
+                        .requestMatchers(HttpMethod.POST, "/api/appointments").hasRole(ROLE_DOCTOR)
                         .anyRequest().authenticated() // Require authentication for all other requests
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS)) // Use stateless sessions for JWT
@@ -108,12 +112,5 @@ public class SecurityConfig {
         return source;
     }
 
-    // --- Bean to remove the default ROLE_ prefix for hasRole checks (optional, for troubleshooting) ---
-    // Re-commented as User model provides ROLE_ prefix correctly.
-    /*
-    @Bean
-    public GrantedAuthorityDefaults grantedAuthorityDefaults() {
-        return new GrantedAuthorityDefaults(""); // Remove the ROLE_ prefix
-    }
-    */
+
 }
