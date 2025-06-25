@@ -23,6 +23,7 @@ import com.clinicapp.backend.model.core.Prescription;
 import com.clinicapp.backend.response.ApiResponse;
 import com.clinicapp.backend.service.core.PrescriptionService;
 import com.clinicapp.backend.util.PdfGenerator;
+import com.clinicapp.backend.service.core.HospitalInfoService;
 
 import java.io.ByteArrayInputStream;
 import java.net.URI;
@@ -33,11 +34,14 @@ public class PrescriptionController {
 
     private final PrescriptionService prescriptionService;
     private final PdfGenerator pdfGenerator;
+    private final HospitalInfoService hospitalInfoService;
 
     public PrescriptionController(PrescriptionService prescriptionService,
-                                  PdfGenerator pdfGenerator) {
+                                  PdfGenerator pdfGenerator,
+                                  HospitalInfoService hospitalInfoService) {
         this.prescriptionService = prescriptionService;
         this.pdfGenerator = pdfGenerator;
+        this.hospitalInfoService = hospitalInfoService;
     }
 
  
@@ -131,7 +135,8 @@ public class PrescriptionController {
     @GetMapping("/{id}/pdf")
     public ResponseEntity<InputStreamResource> generatePrescriptionPdf(@PathVariable Long id) {
         Prescription prescription = prescriptionService.getById(id);
-        ByteArrayInputStream pdf = pdfGenerator.generate(prescription);
+        var hospital = hospitalInfoService.getInfo();
+        ByteArrayInputStream pdf = pdfGenerator.generate(prescription, hospital);
 
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.CONTENT_DISPOSITION,

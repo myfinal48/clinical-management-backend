@@ -3,10 +3,12 @@ package com.clinicapp.backend.util;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.time.format.DateTimeFormatter;
+import java.io.IOException;
 
 import org.springframework.stereotype.Component;
 
 import com.clinicapp.backend.model.core.Prescription;
+import com.clinicapp.backend.model.core.HospitalInfo;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
 
@@ -18,7 +20,7 @@ public class PdfGenerator {
     private static final Font BODY_FONT = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    public ByteArrayInputStream generate(Prescription prescription) {
+    public ByteArrayInputStream generate(Prescription prescription, HospitalInfo hospital) {
         Document document = new Document(PageSize.A4);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -27,12 +29,13 @@ public class PdfGenerator {
             addHeaderFooter(writer);
 
             document.open();
+            addDynamicHeader(document, hospital);
             addTitle(document);
             addPatientInfo(document, prescription);
             addMedicalContent(document, prescription);
             addSignature(document);
 
-        } catch (DocumentException e) {
+        } catch (DocumentException | IOException e) {
             throw new PdfGenerationException("Erreur lors de la génération du PDF", e);
         } finally {
             if (document.isOpen()) {
@@ -43,7 +46,50 @@ public class PdfGenerator {
         return new ByteArrayInputStream(out.toByteArray());
     }
 
+    private void addDynamicHeader(Document document, HospitalInfo hospital) throws DocumentException, IOException {
+        PdfPTable headerTable = new PdfPTable(2);
+        headerTable.setWidthPercentage(100);
+
+        if (hospital != null && hospital.getLogoPath() != null) {
+            Image logo = Image.getInstance(hospital.getLogoPath());
+            logo.scaleToFit(80, 80);
+            PdfPCell logoCell = new PdfPCell(logo, false);
+            logoCell.setBorder(Rectangle.NO_BORDER);
+            logoCell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            headerTable.addCell(logoCell);
+        } else {
+            PdfPCell emptyCell = new PdfPCell();
+            emptyCell.setBorder(Rectangle.NO_BORDER);
+            headerTable.addCell(emptyCell);
+        }
+
+        StringBuilder hospitalInfo = new StringBuilder();
+        if (hospital != null) {
+            if (hospital.getName() != null) hospitalInfo.append(hospital.getName()).append("\n");
+            if (hospital.getAddress() != null) hospitalInfo.append(hospital.getAddress()).append("\n");
+            if (hospital.getPhone() != null) hospitalInfo.append("Tel: ").append(hospital.getPhone()).append("\n");
+            if (hospital.getEmail() != null) hospitalInfo.append("Email: ").append(hospital.getEmail());
+        }
+        String[] lines = hospitalInfo.toString().split("\n");
+        PdfPCell infoCell = new PdfPCell();
+        infoCell.setBorder(Rectangle.NO_BORDER);
+        infoCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        for (String line : lines) {
+            Paragraph linePara = new Paragraph(line, HEADER_FONT);
+            linePara.setAlignment(Element.ALIGN_RIGHT);
+            linePara.setSpacingBefore(3f);
+            infoCell.addElement(linePara);
+        }
+        headerTable.addCell(infoCell);
+
+        document.add(headerTable);
+        document.add(Chunk.NEWLINE);
+    }
+
     private void addTitle(Document document) throws DocumentException {
+        Paragraph spacer = new Paragraph();
+        spacer.setSpacingAfter(30f);
+        document.add(spacer);
         Paragraph title = new Paragraph("ORDONNANCE MÉDICALE\n\n", TITLE_FONT);
         title.setAlignment(Element.ALIGN_CENTER);
         document.add(title);
@@ -67,10 +113,10 @@ public class PdfGenerator {
 
     private void addMedicalContent(Document document, Prescription p) throws DocumentException {
         addSectionTitle(document, "Diagnostic");
-        document.add(new Paragraph(p.getDiagnostic(), BODY_FONT));
+        addBulletList(document, p.getDiagnostic());
 
         addSectionTitle(document, "\nRecommandations thérapeutiques");
-        document.add(new Paragraph(p.getRecommandations(), BODY_FONT));
+        addBulletList(document, p.getRecommandations());
     }
 
     private void addSignature(Document document) throws DocumentException {
@@ -125,6 +171,18 @@ public class PdfGenerator {
         Paragraph sectionTitle = new Paragraph(title, HEADER_FONT);
         sectionTitle.setSpacingBefore(10f);
         document.add(sectionTitle);
+    }
+
+    private void addBulletList(Document document, String content) throws DocumentException {
+        if (content == null || content.trim().isEmpty()) return;
+        com.itextpdf.text.List bulletList = new com.itextpdf.text.List(com.itextpdf.text.List.UNORDERED);
+        Font listFont = new Font(Font.FontFamily.HELVETICA, 11, Font.NORMAL, BaseColor.BLACK);
+        for (String line : content.split("\n")) {
+            if (!line.trim().isEmpty()) {
+                bulletList.add(new ListItem(line.trim(), listFont));
+            }
+        }
+        document.add(bulletList);
     }
 
     public static class PdfGenerationException extends RuntimeException {
