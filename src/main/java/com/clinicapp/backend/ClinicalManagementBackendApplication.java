@@ -45,7 +45,7 @@ public class ClinicalManagementBackendApplication {
 						.firstName("Pepper")
 						.lastName("Nyangono")
 						.username("secretary")
-						.email("sec@secretary.com")
+						.email("sec@sec.com")
 						.password(passwordEncoder.encode("password")) // Encode the password
 						.role(Role.SECRETARY)
 						.build();
