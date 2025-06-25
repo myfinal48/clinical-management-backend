@@ -10,15 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-        import java.time.LocalDate;
-import java.time.Month;
-import java.time.YearMonth;
-import java.time.format.TextStyle;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+
 
 @Service
 @RequiredArgsConstructor
@@ -40,5 +33,4 @@ public class DashboardServiceImpl implements DashboardService {
         // Assuming all users in DB are active for now
         return userRepository.countByRoleIn(List.of(Role.DOCTOR, Role.SECRETARY)); // Requires Role model import
     }
-        // TODO: Add logic for completed/remaining if needed based on time/status
     }
