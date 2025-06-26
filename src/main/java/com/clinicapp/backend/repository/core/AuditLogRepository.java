@@ -1,8 +1,6 @@
 package com.clinicapp.backend.repository.core;
 
 import com.clinicapp.backend.model.core.AuditLog;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,29 +12,28 @@ import java.util.List;
 @Repository
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
-    // Find logs by user
-    Page<AuditLog> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+    // Find audit logs by user
+    List<AuditLog> findByUserIdOrderByCreatedAtDesc(Long userId);
 
-    // Find logs by entity
-    Page<AuditLog> findByEntityTypeAndEntityIdOrderByCreatedAtDesc(String entityType, Long entityId, Pageable pageable);
+    // Find audit logs by entity
+    List<AuditLog> findByEntityTypeAndEntityIdOrderByCreatedAtDesc(String entityType, Long entityId);
 
-    // Find logs by action
-    Page<AuditLog> findByActionOrderByCreatedAtDesc(String action, Pageable pageable);
+    // Find audit logs by action
+    List<AuditLog> findByActionOrderByCreatedAtDesc(String action);
 
-    // Find logs by severity
-    Page<AuditLog> findBySeverityOrderByCreatedAtDesc(AuditLog.AuditSeverity severity, Pageable pageable);
+    // Find audit logs by severity
+    List<AuditLog> findBySeverityOrderByCreatedAtDesc(AuditLog.AuditSeverity severity);
 
-    // Find logs within a date range
+    // Find audit logs by date range
     @Query("SELECT a FROM AuditLog a WHERE a.createdAt BETWEEN :startDate AND :endDate ORDER BY a.createdAt DESC")
-    Page<AuditLog> findByDateRange(@Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate,
-            Pageable pageable);
+    List<AuditLog> findByDateRange(@Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
 
-    // Find recent critical logs
+    // Find critical audit logs since a specific date
     @Query("SELECT a FROM AuditLog a WHERE a.severity = 'CRITICAL' AND a.createdAt >= :since ORDER BY a.createdAt DESC")
     List<AuditLog> findCriticalLogsSince(@Param("since") LocalDateTime since);
 
-    // Action statistics
+    // Get action statistics
     @Query("SELECT a.action, COUNT(a) FROM AuditLog a WHERE a.createdAt >= :since GROUP BY a.action")
-    List<Object[]> getActionStats(@Param("since") LocalDateTime since);
+    List<Object[]> getActionStatistics(@Param("since") LocalDateTime since);
 }

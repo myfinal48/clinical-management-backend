@@ -2,8 +2,6 @@ package com.clinicapp.backend.service.core;
 
 import com.clinicapp.backend.dto.core.ChatMessageDTO;
 import com.clinicapp.backend.model.chat.ChatMessage;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -19,9 +17,9 @@ public interface ChatMessageService {
     List<ChatMessageDTO> getConversation(Long user1Id, Long user2Id);
     
     /**
-     * Get all messages for a user (paginated)
+     * Get all messages for a user
      */
-    Page<ChatMessageDTO> getMessagesForUser(Long userId, Pageable pageable);
+    List<ChatMessageDTO> getMessagesForUser(Long userId);
     
     /**
      * Get unread messages for a user

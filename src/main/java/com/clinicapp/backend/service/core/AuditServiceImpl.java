@@ -1,5 +1,6 @@
 package com.clinicapp.backend.service.core;
 
+import com.clinicapp.backend.dto.core.AuditLogDTO;
 import com.clinicapp.backend.model.core.AuditLog;
 import com.clinicapp.backend.repository.core.AuditLogRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,11 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import com.clinicapp.backend.dto.core.AuditLogDTO;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +22,7 @@ public class AuditServiceImpl implements AuditService {
     private final AuditLogRepository auditLogRepository;
 
     @Override
+    @Transactional
     public void logAction(Long userId, String username, String userRole, String action,
             String entityType, Long entityId, String details,
             AuditLog.AuditSeverity severity) {
@@ -42,7 +43,7 @@ public class AuditServiceImpl implements AuditService {
                     .build();
 
             auditLogRepository.save(auditLog);
-            log.info("Audit log created: {} - {} - {} by user: {}", action, entityType, entityId, username);
+            log.debug("Audit log created: {} by user {}", action, username);
 
         } catch (Exception e) {
             log.error("Failed to create audit log", e);
@@ -50,158 +51,226 @@ public class AuditServiceImpl implements AuditService {
     }
 
     @Override
+    @Transactional
+    public void logAction(Long userId, String username, String userRole, String action,
+            String entityType, Long entityId, String details) {
+        logAction(userId, username, userRole, action, entityType, entityId, details, AuditLog.AuditSeverity.INFO);
+    }
+
+    @Override
+    @Transactional
+    public void logLogin(Long userId, String username, String userRole, String ipAddress, String userAgent) {
+        logAction(userId, username, userRole, "USER_LOGIN", "USER", userId,
+                "User logged in from IP: " + ipAddress, AuditLog.AuditSeverity.INFO);
+    }
+
+    @Override
+    @Transactional
+    public void logLogout(Long userId, String username, String userRole) {
+        logAction(userId, username, userRole, "USER_LOGOUT", "USER", userId,
+                "User logged out", AuditLog.AuditSeverity.INFO);
+    }
+
+    @Override
+    @Transactional
+    public void logRegistration(Long userId, String username, String userRole) {
+        logAction(userId, username, userRole, "USER_REGISTRATION", "USER", userId,
+                "New user registered", AuditLog.AuditSeverity.INFO);
+    }
+
+    @Override
+    @Transactional
+    public void logPasswordChange(Long userId, String username, String userRole) {
+        logAction(userId, username, userRole, "PASSWORD_CHANGE", "USER", userId,
+                "Password changed", AuditLog.AuditSeverity.INFO);
+    }
+
+    @Override
+    @Transactional
+    public void logFailedLogin(String email, String ipAddress, String userAgent, String reason) {
+        try {
+            AuditLog auditLog = AuditLog.builder()
+                    .username(email)
+                    .userRole("UNKNOWN")
+                    .action("LOGIN_FAILED")
+                    .entityType("USER")
+                    .details("Failed login attempt from IP: " + ipAddress + ". Reason: " + reason)
+                    .ipAddress(ipAddress)
+                    .userAgent(userAgent)
+                    .severity(AuditLog.AuditSeverity.WARNING)
+                    .build();
+
+            auditLogRepository.save(auditLog);
+            log.warn("Failed login attempt for user: {} from IP: {}", email, ipAddress);
+
+        } catch (Exception e) {
+            log.error("Failed to log failed login attempt", e);
+        }
+    }
+
+    @Override
+    @Transactional
     public void logCreation(Long userId, String username, String userRole,
             String entityType, Long entityId, Object newData) {
         String details = "Created: " + (newData != null ? newData.toString() : "null");
-        logAction(userId, username, userRole, "CREATE", entityType, entityId,
-                details, AuditLog.AuditSeverity.INFO);
+        logAction(userId, username, userRole, "CREATE", entityType, entityId, details);
     }
 
     @Override
+    @Transactional
     public void logUpdate(Long userId, String username, String userRole,
             String entityType, Long entityId, Object oldData, Object newData) {
-        String details = String.format("Updated: old=%s, new=%s",
-                oldData != null ? oldData.toString() : "null",
-                newData != null ? newData.toString() : "null");
-        logAction(userId, username, userRole, "UPDATE", entityType, entityId,
-                details, AuditLog.AuditSeverity.INFO);
+        String details = "Updated from: " + (oldData != null ? oldData.toString() : "null") +
+                " to: " + (newData != null ? newData.toString() : "null");
+        logAction(userId, username, userRole, "UPDATE", entityType, entityId, details);
     }
 
     @Override
+    @Transactional
     public void logDeletion(Long userId, String username, String userRole,
             String entityType, Long entityId, Object deletedData) {
         String details = "Deleted: " + (deletedData != null ? deletedData.toString() : "null");
-        logAction(userId, username, userRole, "DELETE", entityType, entityId,
-                details, AuditLog.AuditSeverity.WARNING);
+        logAction(userId, username, userRole, "DELETE", entityType, entityId, details);
     }
 
     @Override
-    public void logSecurityEvent(Long userId, String username, String userRole,
-            String action, String details) {
-        logAction(userId, username, userRole, action, "SECURITY", null,
-                details, AuditLog.AuditSeverity.ERROR);
-    }
-
-    @Override
-    public void logSystemError(String action, String details, Exception exception) {
-        AuditLog auditLog = AuditLog.builder()
-                .action(action)
-                .entityType("SYSTEM")
-                .details(details + " - Exception: " + exception.getMessage())
-                .severity(AuditLog.AuditSeverity.CRITICAL)
-                .ipAddress(getClientIpAddress())
-                .userAgent(getUserAgent())
-                .requestUrl(getRequestUrl())
-                .requestMethod(getRequestMethod())
-                .build();
-
-        auditLogRepository.save(auditLog);
-        log.error("System error logged: {} - {}", action, details, exception);
-    }
-
-    @Override
-    public void logUnauthorizedAccess(String username, String ipAddress, String resource) {
-        AuditLog auditLog = AuditLog.builder()
-                .username(username)
-                .action("UNAUTHORIZED_ACCESS")
-                .entityType("SECURITY")
-                .details("Unauthorized access attempt to: " + resource)
-                .severity(AuditLog.AuditSeverity.ERROR)
-                .ipAddress(ipAddress)
-                .userAgent(getUserAgent())
-                .requestUrl(getRequestUrl())
-                .requestMethod(getRequestMethod())
-                .build();
-
-        auditLogRepository.save(auditLog);
-        log.warn("Unauthorized access attempt by {} from {} to {}", username, ipAddress, resource);
-    }
-
-    @Override
+    @Transactional
     public void logNotificationSent(Long senderId, Long recipientId, String notificationType, String details) {
-        AuditLog auditLog = AuditLog.builder()
-                .userId(senderId)
-                .action("NOTIFICATION_SENT")
-                .entityType("NOTIFICATION")
-                .entityId(recipientId)
-                .details("Notification type: " + notificationType + " - " + details)
-                .severity(AuditLog.AuditSeverity.INFO)
-                .ipAddress(getClientIpAddress())
-                .userAgent(getUserAgent())
-                .requestUrl(getRequestUrl())
-                .requestMethod(getRequestMethod())
-                .build();
-
-        auditLogRepository.save(auditLog);
-        log.info("Notification sent from {} to {}: {}", senderId, recipientId, notificationType);
+        logAction(senderId, "SYSTEM", "SYSTEM", "NOTIFICATION_SENT", "NOTIFICATION", recipientId, details);
     }
 
     @Override
-    public void logAppointmentAction(Long userId, String username, String userRole,
-            String action, Long appointmentId, String details) {
-        logAction(userId, username, userRole, action, "APPOINTMENT", appointmentId,
-                details, AuditLog.AuditSeverity.INFO);
+    @Transactional
+    public void logSecurityEvent(Long userId, String username, String userRole, String action, String details) {
+        logAction(userId, username, userRole, action, "SECURITY", null, details, AuditLog.AuditSeverity.INFO);
     }
 
     @Override
-    public void logPrescriptionAction(Long userId, String username, String userRole,
-            String action, Long prescriptionId, String details) {
-        logAction(userId, username, userRole, action, "PRESCRIPTION", prescriptionId,
-                details, AuditLog.AuditSeverity.INFO);
+    @Transactional
+    public void logSystemError(String action, String details, Exception exception) {
+        try {
+            AuditLog auditLog = AuditLog.builder()
+                    .action(action)
+                    .entityType("SYSTEM")
+                    .details(details + " - Exception: " + exception.getMessage())
+                    .severity(AuditLog.AuditSeverity.CRITICAL)
+                    .ipAddress(getClientIpAddress())
+                    .userAgent(getUserAgent())
+                    .requestUrl(getRequestUrl())
+                    .requestMethod(getRequestMethod())
+                    .build();
+
+            auditLogRepository.save(auditLog);
+            log.error("System error logged: {} - {}", action, details, exception);
+        } catch (Exception e) {
+            log.error("Failed to log system error", e);
+        }
     }
 
     @Override
-    public void logInvoiceAction(Long userId, String username, String userRole,
-            String action, Long invoiceId, String details) {
-        logAction(userId, username, userRole, action, "INVOICE", invoiceId,
-                details, AuditLog.AuditSeverity.INFO);
+    @Transactional
+    public void logUnauthorizedAccess(String username, String ipAddress, String resource) {
+        try {
+            AuditLog auditLog = AuditLog.builder()
+                    .username(username)
+                    .action("UNAUTHORIZED_ACCESS")
+                    .entityType("SECURITY")
+                    .details("Unauthorized access attempt to: " + resource)
+                    .severity(AuditLog.AuditSeverity.WARNING)
+                    .ipAddress(ipAddress)
+                    .userAgent(getUserAgent())
+                    .requestUrl(getRequestUrl())
+                    .requestMethod(getRequestMethod())
+                    .build();
+
+            auditLogRepository.save(auditLog);
+            log.warn("Unauthorized access attempt by {} from {} to {}", username, ipAddress, resource);
+        } catch (Exception e) {
+            log.error("Failed to log unauthorized access", e);
+        }
     }
 
     @Override
-    public Page<AuditLogDTO> getAuditLogsByUser(Long userId, Pageable pageable) {
-        return auditLogRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
-                .map(this::toDTO);
+    @Transactional
+    public void logAppointmentAction(Long userId, String username, String userRole, String action, Long appointmentId,
+            String details) {
+        logAction(userId, username, userRole, action, "APPOINTMENT", appointmentId, details,
+                AuditLog.AuditSeverity.INFO);
     }
 
     @Override
-    public Page<AuditLogDTO> getAuditLogsByEntity(String entityType, Long entityId, Pageable pageable) {
-        return auditLogRepository.findByEntityTypeAndEntityIdOrderByCreatedAtDesc(entityType, entityId, pageable)
-                .map(this::toDTO);
+    @Transactional
+    public void logPrescriptionAction(Long userId, String username, String userRole, String action, Long prescriptionId,
+            String details) {
+        logAction(userId, username, userRole, action, "PRESCRIPTION", prescriptionId, details,
+                AuditLog.AuditSeverity.INFO);
     }
 
     @Override
-    public Page<AuditLogDTO> getAuditLogsByAction(String action, Pageable pageable) {
-        return auditLogRepository.findByActionOrderByCreatedAtDesc(action, pageable)
-                .map(this::toDTO);
+    @Transactional
+    public void logInvoiceAction(Long userId, String username, String userRole, String action, Long invoiceId,
+            String details) {
+        logAction(userId, username, userRole, action, "INVOICE", invoiceId, details, AuditLog.AuditSeverity.INFO);
     }
 
     @Override
-    public Page<AuditLogDTO> getAuditLogsBySeverity(AuditLog.AuditSeverity severity, Pageable pageable) {
-        return auditLogRepository.findBySeverityOrderByCreatedAtDesc(severity, pageable)
-                .map(this::toDTO);
+    @Transactional(readOnly = true)
+    public List<AuditLogDTO> getAuditLogsByUser(Long userId) {
+        return auditLogRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(AuditLogDTO::fromEntity)
+                .toList();
     }
 
-    private AuditLogDTO toDTO(AuditLog auditLog) {
-        if (auditLog == null)
-            return null;
-        AuditLogDTO dto = new AuditLogDTO();
-        dto.setId(auditLog.getId());
-        dto.setUserId(auditLog.getUserId());
-        dto.setUsername(auditLog.getUsername());
-        dto.setUserRole(auditLog.getUserRole());
-        dto.setAction(auditLog.getAction());
-        dto.setEntityType(auditLog.getEntityType());
-        dto.setEntityId(auditLog.getEntityId());
-        dto.setOldValues(auditLog.getOldValues());
-        dto.setNewValues(auditLog.getNewValues());
-        dto.setIpAddress(auditLog.getIpAddress());
-        dto.setUserAgent(auditLog.getUserAgent());
-        dto.setRequestUrl(auditLog.getRequestUrl());
-        dto.setRequestMethod(auditLog.getRequestMethod());
-        dto.setDetails(auditLog.getDetails());
-        dto.setSeverity(auditLog.getSeverity());
-        dto.setCreatedAt(auditLog.getCreatedAt());
-        return dto;
+    @Override
+    @Transactional(readOnly = true)
+    public List<AuditLogDTO> getAuditLogsByEntity(String entityType, Long entityId) {
+        return auditLogRepository.findByEntityTypeAndEntityIdOrderByCreatedAtDesc(entityType, entityId)
+                .stream()
+                .map(AuditLogDTO::fromEntity)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AuditLogDTO> getAuditLogsByAction(String action) {
+        return auditLogRepository.findByActionOrderByCreatedAtDesc(action)
+                .stream()
+                .map(AuditLogDTO::fromEntity)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AuditLogDTO> getAuditLogsBySeverity(AuditLog.AuditSeverity severity) {
+        return auditLogRepository.findBySeverityOrderByCreatedAtDesc(severity)
+                .stream()
+                .map(AuditLogDTO::fromEntity)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AuditLogDTO> getAuditLogsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        return auditLogRepository.findByDateRange(startDate, endDate)
+                .stream()
+                .map(AuditLogDTO::fromEntity)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AuditLogDTO> getCriticalLogsSince(LocalDateTime since) {
+        return auditLogRepository.findCriticalLogsSince(since)
+                .stream()
+                .map(AuditLogDTO::fromEntity)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Object[]> getActionStatistics(LocalDateTime since) {
+        return auditLogRepository.getActionStatistics(since);
     }
 
     // Utility methods to retrieve request information

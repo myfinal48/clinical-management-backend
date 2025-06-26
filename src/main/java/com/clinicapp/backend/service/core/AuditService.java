@@ -1,9 +1,10 @@
 package com.clinicapp.backend.service.core;
 
 import com.clinicapp.backend.model.core.AuditLog;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import com.clinicapp.backend.dto.core.AuditLogDTO;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 public interface AuditService {
 
@@ -13,6 +14,37 @@ public interface AuditService {
         void logAction(Long userId, String username, String userRole, String action,
                         String entityType, Long entityId, String details,
                         AuditLog.AuditSeverity severity);
+
+        /**
+         * Records a generic audit action with default INFO severity
+         */
+        void logAction(Long userId, String username, String userRole, String action,
+                        String entityType, Long entityId, String details);
+
+        /**
+         * Records a user login
+         */
+        void logLogin(Long userId, String username, String userRole, String ipAddress, String userAgent);
+
+        /**
+         * Records a user logout
+         */
+        void logLogout(Long userId, String username, String userRole);
+
+        /**
+         * Records a user registration
+         */
+        void logRegistration(Long userId, String username, String userRole);
+
+        /**
+         * Records a password change
+         */
+        void logPasswordChange(Long userId, String username, String userRole);
+
+        /**
+         * Records a failed login attempt
+         */
+        void logFailedLogin(String email, String ipAddress, String userAgent, String reason);
 
         /**
          * Records an entity creation
@@ -71,11 +103,38 @@ public interface AuditService {
         void logInvoiceAction(Long userId, String username, String userRole,
                         String action, Long invoiceId, String details);
 
-        Page<AuditLogDTO> getAuditLogsByUser(Long userId, Pageable pageable);
+        /**
+         * Get audit logs by user
+         */
+        List<AuditLogDTO> getAuditLogsByUser(Long userId);
 
-        Page<AuditLogDTO> getAuditLogsByEntity(String entityType, Long entityId, Pageable pageable);
+        /**
+         * Get audit logs by entity
+         */
+        List<AuditLogDTO> getAuditLogsByEntity(String entityType, Long entityId);
 
-        Page<AuditLogDTO> getAuditLogsByAction(String action, Pageable pageable);
+        /**
+         * Get audit logs by action
+         */
+        List<AuditLogDTO> getAuditLogsByAction(String action);
 
-        Page<AuditLogDTO> getAuditLogsBySeverity(AuditLog.AuditSeverity severity, Pageable pageable);
+        /**
+         * Get audit logs by severity
+         */
+        List<AuditLogDTO> getAuditLogsBySeverity(AuditLog.AuditSeverity severity);
+
+        /**
+         * Get audit logs by date range
+         */
+        List<AuditLogDTO> getAuditLogsByDateRange(LocalDateTime startDate, LocalDateTime endDate);
+
+        /**
+         * Get critical audit logs since a specific date
+         */
+        List<AuditLogDTO> getCriticalLogsSince(LocalDateTime since);
+
+        /**
+         * Get action statistics
+         */
+        List<Object[]> getActionStatistics(LocalDateTime since);
 }

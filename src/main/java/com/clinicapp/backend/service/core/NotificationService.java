@@ -5,11 +5,8 @@ import com.clinicapp.backend.model.core.Notification;
 import com.clinicapp.backend.repository.core.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,10 +26,10 @@ public class NotificationService {
     // Create and send notification
     @Transactional
     @Async
-    public void createAndSendNotification(Long recipientId, Long senderId, 
-                                        Notification.NotificationType type, String title, 
-                                        String message, String entityType, Long entityId,
-                                        Notification.NotificationPriority priority) {
+    public void createAndSendNotification(Long recipientId, Long senderId,
+            Notification.NotificationType type, String title,
+            String message, String entityType, Long entityId,
+            Notification.NotificationPriority priority) {
         try {
             // Validate inputs
             if (recipientId == null || title == null || title.trim().isEmpty()) {
@@ -59,8 +56,8 @@ public class NotificationService {
             sendWebSocketNotification(savedNotification);
 
             // Log audit
-            auditService.logNotificationSent(senderId, recipientId, type.name(), 
-                "Notification sent: " + title);
+            auditService.logNotificationSent(senderId, recipientId, type.name(),
+                    "Notification sent: " + title);
 
             log.info("Notification sent successfully to user {}: {}", recipientId, title);
 
@@ -71,11 +68,11 @@ public class NotificationService {
 
     // Schedule notification for later
     @Transactional
-    public void scheduleNotification(Long recipientId, Long senderId, 
-                                   Notification.NotificationType type, String title, 
-                                   String message, LocalDateTime scheduledAt,
-                                   String entityType, Long entityId,
-                                   Notification.NotificationPriority priority) {
+    public void scheduleNotification(Long recipientId, Long senderId,
+            Notification.NotificationType type, String title,
+            String message, LocalDateTime scheduledAt,
+            String entityType, Long entityId,
+            Notification.NotificationPriority priority) {
         try {
             if (scheduledAt == null || scheduledAt.isBefore(LocalDateTime.now())) {
                 log.warn("Invalid scheduled time: {}", scheduledAt);
@@ -108,10 +105,9 @@ public class NotificationService {
         try {
             NotificationDTO dto = mapToDTO(notification);
             messagingTemplate.convertAndSendToUser(
-                notification.getRecipientId().toString(),
-                "/queue/notifications",
-                dto
-            );
+                    notification.getRecipientId().toString(),
+                    "/queue/notifications",
+                    dto);
         } catch (Exception e) {
             log.error("Failed to send WebSocket notification", e);
         }
@@ -119,137 +115,124 @@ public class NotificationService {
 
     // Get user notifications
     @Transactional(readOnly = true)
-    public Page<NotificationDTO> getUserNotifications(Long userId, Pageable pageable) {
-        return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId, pageable)
-                .map(this::mapToDTO);
+    public List<NotificationDTO> getUserNotifications(Long userId) {
+        return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(this::mapToDTO)
+                .toList();
     }
 
     // Get unread notifications
     @Transactional(readOnly = true)
-    public Page<NotificationDTO> getUnreadNotifications(Long userId, Pageable pageable) {
-        return notificationRepository.findByRecipientIdAndIsReadFalseOrderByCreatedAtDesc(userId, pageable)
-                .map(this::mapToDTO);
+    public List<NotificationDTO> getUnreadNotifications(Long userId) {
+        return notificationRepository.findByRecipientIdAndIsReadFalseOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(this::mapToDTO)
+                .toList();
     }
 
     // Count unread notifications
     @Transactional(readOnly = true)
     public long countUnreadNotifications(Long userId) {
-        return notificationRepository.countByRecipientIdAndIsReadFalse(userId);
+        return notificationRepository.findByRecipientIdAndIsReadFalseOrderByCreatedAtDesc(userId).size();
     }
 
     // Mark notification as read
     @Transactional
     public void markAsRead(Long notificationId) {
-        notificationRepository.markAsRead(notificationId, LocalDateTime.now());
+        try {
+            notificationRepository.markAsRead(notificationId, LocalDateTime.now());
+            log.info("Notification {} marked as read", notificationId);
+        } catch (Exception e) {
+            log.error("Failed to mark notification as read", e);
+        }
     }
 
-    // Mark all notifications as read
+    // Mark all notifications as read for a user
     @Transactional
     public void markAllAsRead(Long userId) {
-        notificationRepository.markAllAsReadForUser(userId, LocalDateTime.now());
+        try {
+            notificationRepository.markAllAsRead(userId, LocalDateTime.now());
+            log.info("All notifications marked as read for user {}", userId);
+        } catch (Exception e) {
+            log.error("Failed to mark all notifications as read", e);
+        }
     }
 
-    // Process scheduled notifications (runs every minute)
-    @Scheduled(fixedRate = 60000)
+    // Process scheduled notifications
     @Transactional
     public void processScheduledNotifications() {
         try {
-            List<Notification> scheduledNotifications = 
-                notificationRepository.findScheduledNotifications(LocalDateTime.now());
+            List<Notification> scheduledNotifications = notificationRepository
+                    .findScheduledNotificationsReadyToSend(LocalDateTime.now());
 
             for (Notification notification : scheduledNotifications) {
-                sendWebSocketNotification(notification);
                 notification.setIsSent(true);
                 notificationRepository.save(notification);
-                
-                log.info("Sent scheduled notification: {}", notification.getTitle());
+                sendWebSocketNotification(notification);
+                log.info("Scheduled notification sent: {}", notification.getTitle());
             }
-
         } catch (Exception e) {
-            log.error("Error processing scheduled notifications", e);
+            log.error("Failed to process scheduled notifications", e);
         }
     }
 
-    // Clean up old notifications (runs daily at 2 AM)
-    @Scheduled(cron = "0 0 2 * * ?")
+    // Clean up old notifications
     @Transactional
-    public void cleanupOldNotifications() {
+    public void cleanupOldNotifications(int daysToKeep) {
         try {
-            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30);
+            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(daysToKeep);
             notificationRepository.deleteOldReadNotifications(cutoffDate);
-            log.info("Cleaned up old notifications before {}", cutoffDate);
+            log.info("Cleaned up notifications older than {} days", daysToKeep);
         } catch (Exception e) {
-            log.error("Error cleaning up old notifications", e);
+            log.error("Failed to cleanup old notifications", e);
         }
     }
 
-    // Convenience methods for specific notification types
-    public void sendNewAppointmentNotification(Long recipientId, Long appointmentId, String patientName, 
-                                             LocalDateTime appointmentTime, String patientEmail, 
-                                             String doctorName, String clinicAddress) {
-        // Send UI notification
+    // Specific notification methods
+    public void sendNewAppointmentNotification(Long recipientId, Long appointmentId, String patientName,
+            LocalDateTime appointmentTime, String patientEmail,
+            String doctorName, String clinicAddress) {
         createAndSendNotification(
-            recipientId, null, Notification.NotificationType.NEW_APPOINTMENT,
-            "New Appointment Scheduled",
-            String.format("New appointment with %s scheduled for %s", patientName, appointmentTime),
-            "APPOINTMENT", appointmentId, Notification.NotificationPriority.HIGH
-        );
-        
-        // Send confirmation email
-        if (patientEmail != null && !patientEmail.trim().isEmpty()) {
-            emailService.sendAppointmentConfirmationEmail(patientEmail, patientName, 
-                appointmentTime, doctorName, clinicAddress);
-        }
+                recipientId, null, Notification.NotificationType.NEW_APPOINTMENT,
+                "New Appointment Scheduled",
+                String.format("New appointment with %s scheduled for %s", patientName, appointmentTime),
+                "APPOINTMENT", appointmentId, Notification.NotificationPriority.NORMAL);
     }
 
-    public void sendAppointmentReminder(Long recipientId, Long appointmentId, String patientName, 
-                                      LocalDateTime appointmentTime, String patientEmail, 
-                                      String doctorName, String clinicAddress) {
-        // Send UI notification
+    public void sendAppointmentReminder(Long recipientId, Long appointmentId, String patientName,
+            LocalDateTime appointmentTime, String patientEmail,
+            String doctorName, String clinicAddress) {
         createAndSendNotification(
-            recipientId, null, Notification.NotificationType.APPOINTMENT_REMINDER,
-            "Appointment Reminder",
-            String.format("Reminder: Appointment with %s at %s", patientName, appointmentTime),
-            "APPOINTMENT", appointmentId, Notification.NotificationPriority.HIGH
-        );
-        
-        // Send email reminder
-        if (patientEmail != null && !patientEmail.trim().isEmpty()) {
-            emailService.sendAppointmentReminderEmail(patientEmail, patientName, 
-                appointmentTime, doctorName, clinicAddress);
-        }
+                recipientId, null, Notification.NotificationType.APPOINTMENT_REMINDER,
+                "Appointment Reminder",
+                String.format("Reminder: Appointment with %s at %s", patientName, appointmentTime),
+                "APPOINTMENT", appointmentId, Notification.NotificationPriority.NORMAL);
     }
 
     public void sendMessageNotification(Long recipientId, Long senderId, String senderName, String messagePreview) {
         createAndSendNotification(
-            recipientId, senderId, Notification.NotificationType.MESSAGE_RECEIVED,
-            "New Message",
-            String.format("New message from %s: %s", senderName, messagePreview),
-            "MESSAGE", null, Notification.NotificationPriority.NORMAL
-        );
-    }
-    
-    // Send appointment cancellation notification
-    public void sendAppointmentCancellationNotification(Long recipientId, Long appointmentId, 
-                                                      String patientName, LocalDateTime appointmentTime, 
-                                                      String patientEmail, String reason) {
-        // Send UI notification
-        createAndSendNotification(
-            recipientId, null, Notification.NotificationType.APPOINTMENT_CANCELLED,
-            "Appointment Cancelled",
-            String.format("Appointment with %s at %s has been cancelled", patientName, appointmentTime),
-            "APPOINTMENT", appointmentId, Notification.NotificationPriority.HIGH
-        );
-        
-        // Send cancellation email
-        if (patientEmail != null && !patientEmail.trim().isEmpty()) {
-            emailService.sendAppointmentCancellationEmail(patientEmail, patientName, 
-                appointmentTime, reason);
-        }
+                recipientId, senderId, Notification.NotificationType.MESSAGE_RECEIVED,
+                "New Message",
+                String.format("New message from %s: %s", senderName, messagePreview),
+                "CHAT", null, Notification.NotificationPriority.NORMAL);
     }
 
-    // DTO mapping
+    public void sendAppointmentCancellationNotification(Long recipientId, Long appointmentId,
+            String patientName, LocalDateTime appointmentTime,
+            String patientEmail, String reason) {
+        createAndSendNotification(
+                recipientId, null, Notification.NotificationType.APPOINTMENT_CANCELLED,
+                "Appointment Cancelled",
+                String.format("Appointment with %s at %s has been cancelled", patientName, appointmentTime),
+                "APPOINTMENT", appointmentId, Notification.NotificationPriority.HIGH);
+    }
+
+    // Map entity to DTO
     private NotificationDTO mapToDTO(Notification notification) {
+        if (notification == null)
+            return null;
+
         return NotificationDTO.builder()
                 .id(notification.getId())
                 .recipientId(notification.getRecipientId())
