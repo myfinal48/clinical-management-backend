@@ -6,6 +6,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
+import java.util.Collections;
+import java.util.List;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/hospital")
+@RequestMapping("/api/v1/hospital")
 public class HospitalInfoController {
     private final HospitalInfoService service;
 
@@ -28,8 +32,13 @@ public class HospitalInfoController {
     })
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/info")
-    public ResponseEntity<HospitalInfo> getInfo() {
-        return ResponseEntity.ok(service.getInfo());
+    public ResponseEntity<List<HospitalInfo>> getInfo() {
+        HospitalInfo info = service.getInfo();
+        if (info == null) {
+            return ResponseEntity.ok(Collections.emptyList());
+        } else {
+            return ResponseEntity.ok(Collections.singletonList(info));
+        }
     }
 
     @Operation(summary = "Save hospital information and logo")

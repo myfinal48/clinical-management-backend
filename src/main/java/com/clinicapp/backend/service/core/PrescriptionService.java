@@ -2,15 +2,18 @@ package com.clinicapp.backend.service.core;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.clinicapp.backend.dto.core.PrescriptionCreationRequestDto;
-import com.clinicapp.backend.exception.ApiException;
+import com.clinicapp.backend.dto.core.PrescriptionResponseDto;
+import com.clinicapp.backend.exceptions.ApiException;
 import com.clinicapp.backend.mapper.PrescriptionMapper;
 import com.clinicapp.backend.model.core.Patient;
 import com.clinicapp.backend.model.core.Prescription;
@@ -132,7 +135,12 @@ public class PrescriptionService {
 
     // Pour la pagination
     @Transactional(readOnly = true)
-    public Page<Prescription> getAll(Pageable pageable) {
-        return prescriptionRepo.findAll((org.springframework.data.domain.Pageable) pageable);
+    public Page<PrescriptionResponseDto> getAll(Pageable pageable) {
+        Page<Prescription> page = prescriptionRepo.findAll(pageable);
+        // Mappe en DTO tant que la session est ouverte
+        List<PrescriptionResponseDto> dtoList = page.getContent().stream()
+            .map(PrescriptionMapper::toDto)
+            .collect(Collectors.toList());
+        return new PageImpl<>(dtoList, pageable, page.getTotalElements());
     }
 }

@@ -102,6 +102,10 @@ public class PdfGenerator {
 
         addTableHeaderCell(table, "Patient");
         addTableCell(table, p.getPatient().getFirstName() + " " + p.getPatient().getLastName());
+        addTableHeaderCell(table, "Date de naissance");
+        addTableCell(table, p.getPatient().getDateOfBirth() != null ? p.getPatient().getDateOfBirth().toString() : "-");
+        addTableHeaderCell(table, "Genre");
+        addTableCell(table, p.getPatient().getGender() != null ? p.getPatient().getGender().toString() : "-");
         addTableHeaderCell(table, "Médecin prescripteur");
         addTableCell(table, p.getMedecin().getFirstName() + " " + p.getMedecin().getLastName());
         addTableHeaderCell(table, "Date de prescription");

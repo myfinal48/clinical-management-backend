@@ -18,18 +18,19 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.clinicapp.backend.dto.core.PrescriptionCreationRequestDto;
 import com.clinicapp.backend.dto.core.PrescriptionResponseDto;
-import com.clinicapp.backend.exception.ApiException;
+import com.clinicapp.backend.exceptions.ApiException;
 import com.clinicapp.backend.model.core.Prescription;
 import com.clinicapp.backend.response.ApiResponse;
 import com.clinicapp.backend.service.core.PrescriptionService;
 import com.clinicapp.backend.util.PdfGenerator;
 import com.clinicapp.backend.service.core.HospitalInfoService;
+import com.clinicapp.backend.mapper.PrescriptionMapper;
 
 import java.io.ByteArrayInputStream;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/api/prescriptions")
+@RequestMapping("/api/v1/prescriptions")
 public class PrescriptionController {
 
     private final PrescriptionService prescriptionService;
@@ -60,8 +61,7 @@ public class PrescriptionController {
         Sort.Direction direction = Sort.Direction.fromString(directionStr);
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        Page<PrescriptionResponseDto> prescriptions = prescriptionService.getAll(pageable)
-                .map(this::convertToDto);
+        Page<PrescriptionResponseDto> prescriptions = prescriptionService.getAll(pageable);
 
         return ResponseEntity.ok(prescriptions);
     }
@@ -154,15 +154,7 @@ public class PrescriptionController {
     }
 
     private PrescriptionResponseDto convertToDto(Prescription prescription) {
-
-        return new PrescriptionResponseDto(
-                prescription.getId(),
-                prescription.getDiagnostic(),
-                prescription.getRecommandations(),
-                prescription.getCreatedAt(),
-                prescription.getPatient().getId(),
-                prescription.getMedecin().getId()
-        );
+        return PrescriptionMapper.toDto(prescription);
     }
 }
 

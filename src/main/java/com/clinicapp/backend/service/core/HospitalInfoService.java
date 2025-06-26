@@ -1,12 +1,14 @@
 package com.clinicapp.backend.service.core;
 
+import com.clinicapp.backend.exceptions.ApiException;
 import com.clinicapp.backend.model.core.HospitalInfo;
 import com.clinicapp.backend.repository.core.HospitalInfoRepository;
+
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.clinicapp.backend.exception.ApiException;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,13 +16,12 @@ import java.util.Arrays;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class HospitalInfoService {
+    
     private final HospitalInfoRepository repo;
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png", "svg");
 
-    public HospitalInfoService(HospitalInfoRepository repo) {
-        this.repo = repo;
-    }
 
     public HospitalInfo getInfo() {
         return repo.findAll().stream().findFirst().orElse(null);

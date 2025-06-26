@@ -16,7 +16,5 @@ public class HospitalInfo {
     private String address;
     private String phone;
     private String email;
-    private String logoPath; // chemin du fichier logo sur le disque
-
-    public void setLogoPath(String logoPath) { this.logoPath = logoPath; }
+    private String logoPath;
 } 
