@@ -33,4 +33,10 @@ public class DashboardServiceImpl implements DashboardService {
         // Assuming all users in DB are active for now
         return userRepository.countByRoleIn(List.of(Role.DOCTOR, Role.SECRETARY)); // Requires Role model import
     }
+
+    @Override
+    public Object getStats() {
+        // Retourne des statistiques fictives ou réelles selon le besoin
+        return new java.util.HashMap<String, Object>();
     }
+}

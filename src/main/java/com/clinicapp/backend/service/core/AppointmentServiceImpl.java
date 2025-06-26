@@ -5,7 +5,8 @@ import com.clinicapp.backend.model.core.Patient;
 import com.clinicapp.backend.model.core.Appointment;
 import com.clinicapp.backend.repository.core.AppointmentRepository;
 import com.clinicapp.backend.repository.core.PatientRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.clinicapp.backend.exceptions.BusinessException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,17 +20,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 
 @Service
+@RequiredArgsConstructor
 public class AppointmentServiceImpl implements AppointmentService {
-    @Autowired
-    private AppointmentRepository appointmentRepository;
-    @Autowired
-    private PatientRepository patientRepository;
-    @Autowired(required = false)
-    private PenaltyService penaltyService;
-    @Autowired(required = false)
-    private CompensationService compensationService;
-    @Autowired(required = false)
-    private NotificationService notificationService;
+    private final AppointmentRepository appointmentRepository;
+    private final PatientRepository patientRepository;
 
     private static final long CANCELLATION_DEADLINE_HOURS = 24;
     private static final long MIN_BOOKING_HOURS = 2;
@@ -38,38 +32,28 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional
     public AppointmentDTO createAppointment(AppointmentDTO dto) {
-        // 1. Vérification délai de réservation
         if (LocalDateTime.now().plusHours(MIN_BOOKING_HOURS).isAfter(dto.getDateTime())) {
-            throw new IllegalArgumentException("Appointment must be booked at least 2 hours in advance.");
+            throw new BusinessException("Appointment must be booked at least 2 hours in advance.");
         }
-
         DayOfWeek day = dto.getDateTime().getDayOfWeek();
         int hour = dto.getDateTime().getHour();
         if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY || hour < 8 || hour > 18) {
-            throw new IllegalArgumentException("No appointments allowed at this time (night or weekend).");
+            throw new BusinessException("No appointments allowed at this time (night or weekend).");
         }
-
-        // 3. Vérification double réservation médecin
         LocalDateTime start = dto.getDateTime();
         LocalDateTime end = start.plusMinutes(getDefaultDuration("GENERAL").toMinutes() + BUFFER_MINUTES);
         if (appointmentRepository.existsByDoctorAndDateTimeOverlap(dto.getDoctor(), start, end)) {
-            throw new IllegalArgumentException("Doctor already has an appointment at this time.");
+            throw new BusinessException("Doctor already has an appointment at this time.");
         }
-
-        // 4. Vérification limite patient/jour (hors urgence)
         if (!"EMERGENCY".equalsIgnoreCase(dto.getReason()) && appointmentRepository.existsByPatientAndDate(dto.getPatientId(), start.toLocalDate())) {
-            throw new IllegalArgumentException("Patient already has an appointment for this day.");
+            throw new BusinessException("Patient already has an appointment for this day.");
         }
-
-        // 5. Créneaux d'urgence réservés (9h-10h)
         if ("EMERGENCY".equalsIgnoreCase(dto.getReason())) {
             int emergencyHour = start.getHour();
             if (emergencyHour < 9 || emergencyHour >= 10) {
-                throw new IllegalArgumentException("Emergency appointments are only allowed between 9:00 and 10:00.");
+                throw new BusinessException("Emergency appointments are only allowed between 9:00 and 10:00.");
             }
         }
-
-        // Création du rendez-vous
         Appointment appointment = new Appointment();
         appointment.setDateTime(dto.getDateTime());
         appointment.setReason(dto.getReason());
@@ -121,16 +105,13 @@ public class AppointmentServiceImpl implements AppointmentService {
             if (hoursLeft < CANCELLATION_DEADLINE_HOURS) {
                 if ("PATIENT".equalsIgnoreCase(initiatedBy)) {
                     appointment.setStatus(Appointment.Status.LATE_CANCELLED);
-                    if (penaltyService != null) penaltyService.applyPenalty(appointment.getPatient());
                 } else {
                     appointment.setStatus(Appointment.Status.CLINIC_CANCELLED);
-                    if (compensationService != null) compensationService.offerReschedule(appointment);
                 }
             } else {
                 appointment.setStatus(Appointment.Status.CANCELLED);
             }
             appointmentRepository.save(appointment);
-            if (notificationService != null) notificationService.sendCancellation(appointment, initiatedBy);
             return true;
         }
         return false;
