@@ -1,8 +1,10 @@
 package com.clinicapp.backend.model.core;
 
 import jakarta.persistence.*;
+import lombok.Data;
 import java.time.LocalDateTime;
 
+@Data
 @Entity
 public class Appointment {
     @Id
@@ -33,25 +35,5 @@ public class Appointment {
 
     public enum Status {
         SCHEDULED, CONFIRMED, CANCELLED, IN_PROGRESS, COMPLETED, NO_SHOW, BILLED, LATE_CANCELLED, CLINIC_CANCELLED
-    }
-
-    // Getters and setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public LocalDateTime getDateTime() { return dateTime; }
-    public void setDateTime(LocalDateTime dateTime) { this.dateTime = dateTime; }
-    public String getReason() { return reason; }
-    public void setReason(String reason) { this.reason = reason; }
-    public Patient getPatient() { return patient; }
-    public void setPatient(Patient patient) { this.patient = patient; }
-    public String getDoctor() { return doctor; }
-    public void setDoctor(String doctor) { this.doctor = doctor; }
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
-    public String getCancellationInitiator() {
-        return cancellationInitiator;
-    }
-    public void setCancellationInitiator(String cancellationInitiator) {
-        this.cancellationInitiator = cancellationInitiator;
     }
 } 

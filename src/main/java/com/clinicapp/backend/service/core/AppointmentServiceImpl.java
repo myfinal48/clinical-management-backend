@@ -1,6 +1,7 @@
 package com.clinicapp.backend.service.core;
 
-import com.clinicapp.backend.dto.core.AppointmentDTO;
+import com.clinicapp.backend.dto.core.AppointmentRequestDTO;
+import com.clinicapp.backend.dto.core.AppointmentResponseDTO;
 import com.clinicapp.backend.model.core.Patient;
 import com.clinicapp.backend.model.core.Appointment;
 import com.clinicapp.backend.repository.core.AppointmentRepository;
@@ -31,27 +32,27 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional
-    public AppointmentDTO createAppointment(AppointmentDTO dto) {
+    public AppointmentResponseDTO createAppointment(AppointmentRequestDTO dto) {
         if (LocalDateTime.now().plusHours(MIN_BOOKING_HOURS).isAfter(dto.getDateTime())) {
-            throw new BusinessException("Appointment must be booked at least 2 hours in advance.");
+            throw new BusinessException("Le rendez-vous doit être réservé au moins 2 heures à l'avance.");
         }
         DayOfWeek day = dto.getDateTime().getDayOfWeek();
         int hour = dto.getDateTime().getHour();
         if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY || hour < 8 || hour > 18) {
-            throw new BusinessException("No appointments allowed at this time (night or weekend).");
+            throw new BusinessException("Aucun rendez-vous n'est autorisé la nuit ou le week-end.");
         }
         LocalDateTime start = dto.getDateTime();
         LocalDateTime end = start.plusMinutes(getDefaultDuration("GENERAL").toMinutes() + BUFFER_MINUTES);
         if (appointmentRepository.existsByDoctorAndDateTimeOverlap(dto.getDoctor(), start, end)) {
-            throw new BusinessException("Doctor already has an appointment at this time.");
+            throw new BusinessException("Le médecin a déjà un rendez-vous à ce créneau.");
         }
         if (!"EMERGENCY".equalsIgnoreCase(dto.getReason()) && appointmentRepository.existsByPatientAndDate(dto.getPatientId(), start.toLocalDate())) {
-            throw new BusinessException("Patient already has an appointment for this day.");
+            throw new BusinessException("Le patient a déjà un rendez-vous pour ce jour.");
         }
         if ("EMERGENCY".equalsIgnoreCase(dto.getReason())) {
             int emergencyHour = start.getHour();
             if (emergencyHour < 9 || emergencyHour >= 10) {
-                throw new BusinessException("Emergency appointments are only allowed between 9:00 and 10:00.");
+                throw new BusinessException("Les urgences sont autorisées uniquement entre 9h00 et 10h00.");
             }
         }
         Appointment appointment = new Appointment();
@@ -61,22 +62,22 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setStatus(Appointment.Status.SCHEDULED);
         Patient patient = patientRepository.findById(dto.getPatientId()).orElseThrow();
         appointment.setPatient(patient);
-        return toDTO(appointmentRepository.save(appointment));
+        return toResponseDTO(appointmentRepository.save(appointment));
     }
 
     @Override
-    public AppointmentDTO getAppointment(Long id) {
-        return appointmentRepository.findById(id).map(this::toDTO).orElse(null);
+    public AppointmentResponseDTO getAppointment(Long id) {
+        return appointmentRepository.findById(id).map(this::toResponseDTO).orElse(null);
     }
 
     @Override
-    public List<AppointmentDTO> listAppointments() {
-        return appointmentRepository.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+    public List<AppointmentResponseDTO> listAppointments() {
+        return appointmentRepository.findAll().stream().map(this::toResponseDTO).collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public AppointmentDTO updateAppointment(Long id, AppointmentDTO dto) {
+    public AppointmentResponseDTO updateAppointment(Long id, AppointmentRequestDTO dto) {
         Appointment appointment = appointmentRepository.findById(id).orElseThrow();
         appointment.setDateTime(dto.getDateTime());
         appointment.setReason(dto.getReason());
@@ -85,7 +86,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             Patient patient = patientRepository.findById(dto.getPatientId()).orElseThrow();
             appointment.setPatient(patient);
         }
-        return toDTO(appointmentRepository.save(appointment));
+        return toResponseDTO(appointmentRepository.save(appointment));
     }
 
     @Override
@@ -117,14 +118,16 @@ public class AppointmentServiceImpl implements AppointmentService {
         return false;
     }
 
-    private AppointmentDTO toDTO(Appointment appointment) {
-        AppointmentDTO dto = new AppointmentDTO();
+    private AppointmentResponseDTO toResponseDTO(Appointment appointment) {
+        AppointmentResponseDTO dto = new AppointmentResponseDTO();
         dto.setId(appointment.getId());
         dto.setDateTime(appointment.getDateTime());
         dto.setReason(appointment.getReason());
         dto.setDoctor(appointment.getDoctor());
         dto.setPatientId(appointment.getPatient().getId());
         dto.setStatus(appointment.getStatus().name());
+        dto.setCancellationInitiator(appointment.getCancellationInitiator());
+        dto.setCancellationReason(appointment.getCancellationReason());
         return dto;
     }
 

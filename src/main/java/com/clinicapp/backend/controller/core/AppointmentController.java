@@ -1,37 +1,40 @@
 package com.clinicapp.backend.controller.core;
 
-import com.clinicapp.backend.dto.core.AppointmentDTO;
+import com.clinicapp.backend.dto.core.AppointmentRequestDTO;
+import com.clinicapp.backend.dto.core.AppointmentResponseDTO;
 import com.clinicapp.backend.service.core.AppointmentService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/appointments")
+@RequiredArgsConstructor
 public class AppointmentController {
-    @Autowired
-    private AppointmentService appointmentService;
+
+    private final AppointmentService appointmentService;
 
     @PostMapping
-    public ResponseEntity<AppointmentDTO> create(@RequestBody AppointmentDTO dto) {
+    public ResponseEntity<AppointmentResponseDTO> create(@Valid @RequestBody AppointmentRequestDTO dto) {
         return ResponseEntity.ok(appointmentService.createAppointment(dto));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AppointmentDTO> get(@PathVariable Long id) {
-        AppointmentDTO dto = appointmentService.getAppointment(id);
+    public ResponseEntity<AppointmentResponseDTO> get(@PathVariable Long id) {
+        AppointmentResponseDTO dto = appointmentService.getAppointment(id);
         return dto != null ? ResponseEntity.ok(dto) : ResponseEntity.notFound().build();
     }
 
     @GetMapping
-    public List<AppointmentDTO> list() {
+    public List<AppointmentResponseDTO> list() {
         return appointmentService.listAppointments();
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AppointmentDTO> update(@PathVariable Long id, @RequestBody AppointmentDTO dto) {
+    public ResponseEntity<AppointmentResponseDTO> update(@PathVariable Long id, @Valid @RequestBody AppointmentRequestDTO dto) {
         return ResponseEntity.ok(appointmentService.updateAppointment(id, dto));
     }
 
@@ -45,9 +48,9 @@ public class AppointmentController {
     public ResponseEntity<String> cancel(@PathVariable Long id, @RequestParam String initiatedBy) {
         boolean result = appointmentService.cancelAppointment(id, initiatedBy);
         if (result) {
-            return ResponseEntity.ok("Appointment cancelled successfully.");
+            return ResponseEntity.ok("Rendez-vous annulé avec succès.");
         } else {
-            return ResponseEntity.badRequest().body("Unable to cancel this appointment (deadline exceeded or not found).");
+            return ResponseEntity.badRequest().body("Impossible d'annuler ce rendez-vous (délai dépassé ou non trouvé).");
         }
     }
 } 
