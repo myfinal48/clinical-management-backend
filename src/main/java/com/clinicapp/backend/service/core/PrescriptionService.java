@@ -2,17 +2,12 @@ package com.clinicapp.backend.service.core;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.clinicapp.backend.dto.core.PrescriptionCreationRequestDto;
-import com.clinicapp.backend.dto.core.PrescriptionResponseDto;
 import com.clinicapp.backend.exceptions.ApiException;
 import com.clinicapp.backend.mapper.PrescriptionMapper;
 import com.clinicapp.backend.model.core.Patient;
@@ -31,7 +26,6 @@ public class PrescriptionService {
     private final PatientRepository patientRepository;
     private final UserRepository medecinRepository;
 
-    // Injection par constructeur (meilleure pratique)
     public PrescriptionService(PrescriptionRepository prescriptionRepo,
                                PatientRepository patientRepository,
                                UserRepository medecinRepository) {
@@ -42,7 +36,23 @@ public class PrescriptionService {
 
     @Transactional(readOnly = true)
     public List<Prescription> getAll() {
-        return prescriptionRepo.findAll();
+        List<Prescription> list = prescriptionRepo.findAll();
+        // Force le chargement des champs LOB et des relations nécessaires pour le DTO et le PDF
+        list.forEach(p -> {
+            p.getDiagnostic();
+            p.getRecommandations();
+            if (p.getPatient() != null) {
+                p.getPatient().getFirstName();
+                p.getPatient().getLastName();
+                p.getPatient().getGender();
+                p.getPatient().getDateOfBirth();
+            }
+            if (p.getMedecin() != null) {
+                p.getMedecin().getFirstName();
+                p.getMedecin().getLastName();
+            }
+        });
+        return list;
     }
 
     @Transactional(readOnly = true)
@@ -53,10 +63,19 @@ public class PrescriptionService {
                         HttpStatus.NOT_FOUND,
                         "PRESCRIPTION_NOT_FOUND"
                 ));
-        prescription.getPatient().getFirstName();
-        prescription.getPatient().getLastName();
-        prescription.getMedecin().getFirstName();
-        prescription.getMedecin().getLastName();
+        // Force le chargement de tous les champs nécessaires pour le PDF
+        if (prescription.getPatient() != null) {
+            prescription.getPatient().getFirstName();
+            prescription.getPatient().getLastName();
+            prescription.getPatient().getGender();
+            prescription.getPatient().getDateOfBirth();
+        }
+        if (prescription.getMedecin() != null) {
+            prescription.getMedecin().getFirstName();
+            prescription.getMedecin().getLastName();
+        }
+        prescription.getDiagnostic();
+        prescription.getRecommandations();
         return prescription;
     }
 
@@ -131,16 +150,5 @@ public class PrescriptionService {
             );
         }
         prescriptionRepo.deleteById(id);
-    }
-
-    // Pour la pagination
-    @Transactional(readOnly = true)
-    public Page<PrescriptionResponseDto> getAll(Pageable pageable) {
-        Page<Prescription> page = prescriptionRepo.findAll(pageable);
-        // Mappe en DTO tant que la session est ouverte
-        List<PrescriptionResponseDto> dtoList = page.getContent().stream()
-            .map(PrescriptionMapper::toDto)
-            .collect(Collectors.toList());
-        return new PageImpl<>(dtoList, pageable, page.getTotalElements());
     }
 }

@@ -4,10 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,6 +24,7 @@ import com.clinicapp.backend.mapper.PrescriptionMapper;
 
 import java.io.ByteArrayInputStream;
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/prescriptions")
@@ -45,31 +42,19 @@ public class PrescriptionController {
         this.hospitalInfoService = hospitalInfoService;
     }
 
- 
-    @Operation(summary = "Get all prescriptions (paginated)")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Paginated list of prescriptions")
+    @Operation(summary = "Get all prescriptions (no pagination)")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "List of prescriptions")
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
     @GetMapping("/all")
-    public ResponseEntity<Page<PrescriptionResponseDto>> getAllPrescriptions(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") @Max(50) int size,
-            @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
-
-        String sortBy = sort.length > 0 ? sort[0] : "createdAt";
-        String directionStr = sort.length > 1 ? sort[1] : "desc";
-
-        Sort.Direction direction = Sort.Direction.fromString(directionStr);
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-
-        Page<PrescriptionResponseDto> prescriptions = prescriptionService.getAll(pageable);
-
-        return ResponseEntity.ok(prescriptions);
+    public ResponseEntity<List<PrescriptionResponseDto>> getAllPrescriptions() {
+        List<Prescription> prescriptions = prescriptionService.getAll();
+        List<PrescriptionResponseDto> dtos = prescriptions.stream()
+            .map(PrescriptionMapper::toDto)
+            .toList();
+        return ResponseEntity.ok(dtos);
     }
 
-
     @Operation(summary = "Get prescription by ID")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Paginated list of prescriptions")
-
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Prescription found")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Prescription not found")
     @PreAuthorize("hasRole('DOCTOR')")

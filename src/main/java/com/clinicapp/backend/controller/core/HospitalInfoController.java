@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.springframework.http.MediaType;
@@ -33,12 +32,7 @@ public class HospitalInfoController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/info")
     public ResponseEntity<List<HospitalInfo>> getInfo() {
-        HospitalInfo info = service.getInfo();
-        if (info == null) {
-            return ResponseEntity.ok(Collections.emptyList());
-        } else {
-            return ResponseEntity.ok(Collections.singletonList(info));
-        }
+        return ResponseEntity.ok(service.getAllInfo());
     }
 
     @Operation(summary = "Save hospital information and logo")

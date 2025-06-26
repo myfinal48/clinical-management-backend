@@ -11,6 +11,9 @@ import com.clinicapp.backend.model.core.Prescription;
 import com.clinicapp.backend.model.core.HospitalInfo;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
+import io.minio.MinioClient;
+import io.minio.GetObjectArgs;
+import org.springframework.beans.factory.annotation.Value;
 
 @Component
 public class PdfGenerator {
@@ -19,6 +22,15 @@ public class PdfGenerator {
     private static final Font HEADER_FONT = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, BaseColor.BLACK);
     private static final Font BODY_FONT = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+    private final MinioClient minioClient;
+    
+    @Value("${minio.bucket-name}")
+    private String bucketName;
+
+    public PdfGenerator(MinioClient minioClient) {
+        this.minioClient = minioClient;
+    }
 
     public ByteArrayInputStream generate(Prescription prescription, HospitalInfo hospital) {
         Document document = new Document(PageSize.A4);
@@ -29,12 +41,24 @@ public class PdfGenerator {
             addHeaderFooter(writer);
 
             document.open();
-            addDynamicHeader(document, hospital);
-            addTitle(document);
-            addPatientInfo(document, prescription);
-            addMedicalContent(document, prescription);
-            addSignature(document);
-
+            boolean hasContent = false;
+            if (prescription != null) {
+                addDynamicHeader(document, hospital);
+                addTitle(document);
+                if (prescription.getPatient() != null && prescription.getMedecin() != null) {
+                    addPatientInfo(document, prescription);
+                    hasContent = true;
+                }
+                if ((prescription.getDiagnostic() != null && !prescription.getDiagnostic().trim().isEmpty()) ||
+                    (prescription.getRecommandations() != null && !prescription.getRecommandations().trim().isEmpty())) {
+                    addMedicalContent(document, prescription);
+                    hasContent = true;
+                }
+                addSignature(document);
+            }
+            if (!hasContent) {
+                document.add(new Paragraph("Aucune donnée à afficher.", TITLE_FONT));
+            }
         } catch (DocumentException | IOException e) {
             throw new PdfGenerationException("Erreur lors de la génération du PDF", e);
         } finally {
@@ -51,12 +75,37 @@ public class PdfGenerator {
         headerTable.setWidthPercentage(100);
 
         if (hospital != null && hospital.getLogoPath() != null) {
-            Image logo = Image.getInstance(hospital.getLogoPath());
-            logo.scaleToFit(80, 80);
-            PdfPCell logoCell = new PdfPCell(logo, false);
-            logoCell.setBorder(Rectangle.NO_BORDER);
-            logoCell.setHorizontalAlignment(Element.ALIGN_LEFT);
-            headerTable.addCell(logoCell);
+            try {
+                // Charger le logo depuis Minio
+                var logoStream = minioClient.getObject(
+                    GetObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(hospital.getLogoPath())
+                        .build()
+                );
+                
+                // Convertir le stream en bytes pour iText
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                logoStream.transferTo(baos);
+                byte[] logoBytes = baos.toByteArray();
+                
+                // Créer l'image à partir des bytes
+                Image logo = Image.getInstance(logoBytes);
+                logo.scaleToFit(80, 80);
+                PdfPCell logoCell = new PdfPCell(logo, false);
+                logoCell.setBorder(Rectangle.NO_BORDER);
+                logoCell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                headerTable.addCell(logoCell);
+                
+                // Fermer le stream
+                logoStream.close();
+            } catch (Exception e) {
+                // Si le logo ne peut pas être chargé, ajouter une cellule vide
+                System.err.println("Erreur lors du chargement du logo depuis Minio: " + e.getMessage());
+                PdfPCell emptyCell = new PdfPCell();
+                emptyCell.setBorder(Rectangle.NO_BORDER);
+                headerTable.addCell(emptyCell);
+            }
         } else {
             PdfPCell emptyCell = new PdfPCell();
             emptyCell.setBorder(Rectangle.NO_BORDER);
@@ -70,6 +119,11 @@ public class PdfGenerator {
             if (hospital.getPhone() != null) hospitalInfo.append("Tel: ").append(hospital.getPhone()).append("\n");
             if (hospital.getEmail() != null) hospitalInfo.append("Email: ").append(hospital.getEmail());
         }
+        
+        if (hospitalInfo.length() == 0) {
+            hospitalInfo.append("Informations de l'hôpital non disponibles");
+        }
+        
         String[] lines = hospitalInfo.toString().split("\n");
         PdfPCell infoCell = new PdfPCell();
         infoCell.setBorder(Rectangle.NO_BORDER);
@@ -96,6 +150,7 @@ public class PdfGenerator {
     }
 
     private void addPatientInfo(Document document, Prescription p) throws DocumentException {
+        if (p == null || p.getPatient() == null || p.getMedecin() == null) return;
         PdfPTable table = new PdfPTable(2);
         table.setWidthPercentage(100);
         table.setSpacingBefore(20f);
@@ -109,18 +164,22 @@ public class PdfGenerator {
         addTableHeaderCell(table, "Médecin prescripteur");
         addTableCell(table, p.getMedecin().getFirstName() + " " + p.getMedecin().getLastName());
         addTableHeaderCell(table, "Date de prescription");
-        addTableCell(table, DATE_FORMATTER.format(p.getCreatedAt()));
+        addTableCell(table, p.getCreatedAt() != null ? DATE_FORMATTER.format(p.getCreatedAt()) : "-");
 
         document.add(table);
         document.add(Chunk.NEWLINE);
     }
 
     private void addMedicalContent(Document document, Prescription p) throws DocumentException {
-        addSectionTitle(document, "Diagnostic");
-        addBulletList(document, p.getDiagnostic());
-
-        addSectionTitle(document, "\nRecommandations thérapeutiques");
-        addBulletList(document, p.getRecommandations());
+        if (p == null) return;
+        if (p.getDiagnostic() != null && !p.getDiagnostic().trim().isEmpty()) {
+            addSectionTitle(document, "Diagnostic");
+            addBulletList(document, p.getDiagnostic());
+        }
+        if (p.getRecommandations() != null && !p.getRecommandations().trim().isEmpty()) {
+            addSectionTitle(document, "\nRecommandations thérapeutiques");
+            addBulletList(document, p.getRecommandations());
+        }
     }
 
     private void addSignature(Document document) throws DocumentException {
