@@ -24,6 +24,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final AuditService auditService;
+    private final EmailService emailService;
 
     // Create and send notification
     @Transactional
@@ -183,22 +184,40 @@ public class NotificationService {
     }
 
     // Convenience methods for specific notification types
-    public void sendNewAppointmentNotification(Long recipientId, Long appointmentId, String patientName, LocalDateTime appointmentTime) {
+    public void sendNewAppointmentNotification(Long recipientId, Long appointmentId, String patientName, 
+                                             LocalDateTime appointmentTime, String patientEmail, 
+                                             String doctorName, String clinicAddress) {
+        // Send UI notification
         createAndSendNotification(
             recipientId, null, Notification.NotificationType.NEW_APPOINTMENT,
             "New Appointment Scheduled",
             String.format("New appointment with %s scheduled for %s", patientName, appointmentTime),
             "APPOINTMENT", appointmentId, Notification.NotificationPriority.HIGH
         );
+        
+        // Send confirmation email
+        if (patientEmail != null && !patientEmail.trim().isEmpty()) {
+            emailService.sendAppointmentConfirmationEmail(patientEmail, patientName, 
+                appointmentTime, doctorName, clinicAddress);
+        }
     }
 
-    public void sendAppointmentReminder(Long recipientId, Long appointmentId, String patientName, LocalDateTime appointmentTime) {
+    public void sendAppointmentReminder(Long recipientId, Long appointmentId, String patientName, 
+                                      LocalDateTime appointmentTime, String patientEmail, 
+                                      String doctorName, String clinicAddress) {
+        // Send UI notification
         createAndSendNotification(
             recipientId, null, Notification.NotificationType.APPOINTMENT_REMINDER,
             "Appointment Reminder",
             String.format("Reminder: Appointment with %s at %s", patientName, appointmentTime),
             "APPOINTMENT", appointmentId, Notification.NotificationPriority.HIGH
         );
+        
+        // Send email reminder
+        if (patientEmail != null && !patientEmail.trim().isEmpty()) {
+            emailService.sendAppointmentReminderEmail(patientEmail, patientName, 
+                appointmentTime, doctorName, clinicAddress);
+        }
     }
 
     public void sendMessageNotification(Long recipientId, Long senderId, String senderName, String messagePreview) {
@@ -208,6 +227,25 @@ public class NotificationService {
             String.format("New message from %s: %s", senderName, messagePreview),
             "MESSAGE", null, Notification.NotificationPriority.NORMAL
         );
+    }
+    
+    // Send appointment cancellation notification
+    public void sendAppointmentCancellationNotification(Long recipientId, Long appointmentId, 
+                                                      String patientName, LocalDateTime appointmentTime, 
+                                                      String patientEmail, String reason) {
+        // Send UI notification
+        createAndSendNotification(
+            recipientId, null, Notification.NotificationType.APPOINTMENT_CANCELLED,
+            "Appointment Cancelled",
+            String.format("Appointment with %s at %s has been cancelled", patientName, appointmentTime),
+            "APPOINTMENT", appointmentId, Notification.NotificationPriority.HIGH
+        );
+        
+        // Send cancellation email
+        if (patientEmail != null && !patientEmail.trim().isEmpty()) {
+            emailService.sendAppointmentCancellationEmail(patientEmail, patientName, 
+                appointmentTime, reason);
+        }
     }
 
     // DTO mapping
