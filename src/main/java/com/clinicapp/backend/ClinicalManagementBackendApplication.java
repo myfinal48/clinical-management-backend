@@ -39,7 +39,7 @@ public class ClinicalManagementBackendApplication {
 						.username("doctor")
 						.email("doctor@doctor.com")
 						.password(passwordEncoder.encode("password")) // Encode the password
-						.role(Role.DOCTOR)
+						.role(Role.ADMIN)
 						.build();
 				User secUser = User.builder()
 						.firstName("Alice")
