@@ -6,6 +6,7 @@ import com.clinicapp.backend.model.core.Patient;
 import com.clinicapp.backend.repository.core.PatientRepository;
 import com.clinicapp.backend.exceptions.ResourceNotFoundException;
 import com.clinicapp.backend.exceptions.BadRequestException;
+import com.clinicapp.backend.model.core.Gender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,7 +42,7 @@ public class PatientServiceImpl implements PatientService {
                 .firstName(patientDTO.getFirstName())
                 .lastName(patientDTO.getLastName())
                 .dateOfBirth(patientDTO.getDateOfBirth())
-                .gender(patientDTO.getGender())
+                .gender(Gender.valueOf(patientDTO.getGender()))
                 .address(patientDTO.getAddress())
                 .phoneNumber(patientDTO.getPhoneNumber())
                 .email(patientDTO.getEmail())
@@ -54,7 +55,7 @@ public class PatientServiceImpl implements PatientService {
         patient.setFirstName(patientDTO.getFirstName());
         patient.setLastName(patientDTO.getLastName());
         patient.setDateOfBirth(patientDTO.getDateOfBirth());
-        patient.setGender(patientDTO.getGender());
+        patient.setGender(Gender.valueOf(patientDTO.getGender()));
         patient.setAddress(patientDTO.getAddress());
         patient.setPhoneNumber(patientDTO.getPhoneNumber());
         patient.setEmail(patientDTO.getEmail());

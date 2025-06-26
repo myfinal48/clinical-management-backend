@@ -2,7 +2,7 @@ package com.clinicapp.backend.dto.core;
 
 import java.time.LocalDateTime;
 
-public class RendezVousDTO {
+public class Appointment {
     private Long id;
     private LocalDateTime dateHeure;
     private String motif;
