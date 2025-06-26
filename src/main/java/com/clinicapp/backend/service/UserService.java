@@ -1,23 +1,25 @@
 package com.clinicapp.backend.service;
 
 import com.clinicapp.backend.model.security.Role;
-import com.clinicapp.backend.model.security.User;
+import com.clinicapp.backend.dto.auth.RegisterRequest;
+import com.clinicapp.backend.dto.auth.UpdateUserRequestDTO;
+import com.clinicapp.backend.dto.auth.UserResponseDTO;
 
 import java.util.List;
 
 public interface UserService {
 
-    User createUser(User user);
+    UserResponseDTO createUser(RegisterRequest user);
 
-    User updateUser(Long userId, User user);
+    UserResponseDTO updateUser(Long userId, UpdateUserRequestDTO user);
 
     void deleteUser(Long userId);
 
-    User getUserById(Long userId);
+    UserResponseDTO getUserById(Long userId);
 
-    List<User> getAllUsers();
+    List<UserResponseDTO> getAllUsers();
 
-    List<User> getUsersByRole(Role role);
+    List<UserResponseDTO> getUsersByRole(Role role);
 
     // Potentially add methods for password reset, enabling/disabling users etc.
 }

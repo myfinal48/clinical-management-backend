@@ -1,5 +1,6 @@
 package com.clinicapp.backend.dto.core;
 
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PastOrPresent;
@@ -10,17 +11,13 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
-/**
- * Data Transfer Object for Patient information.
- */
+import com.clinicapp.backend.model.core.Gender;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PatientDTO {
-
-    private Long id; // Include ID for responses and updates
-
+public class PatientRequestDTO {
     @NotBlank(message = "First name cannot be blank")
     private String firstName;
 
@@ -30,8 +27,8 @@ public class PatientDTO {
     @PastOrPresent(message = "Date of birth must be in the past or present")
     private LocalDate dateOfBirth;
 
-    @NotBlank(message = "Gender cannot be blank")
-    private String gender;
+    @Enumerated
+    private Gender gender;
 
     @NotBlank(message = "Address cannot be blank")
     private String address;
@@ -45,4 +42,4 @@ public class PatientDTO {
     private String medicalHistory; // Keep as String for simplicity, could be structured
 
     private String allergies; // Keep as String
-}
+} 

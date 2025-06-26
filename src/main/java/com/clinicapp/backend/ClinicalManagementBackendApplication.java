@@ -34,22 +34,24 @@ public class ClinicalManagementBackendApplication {
 						.role(Role.ADMIN)
 						.build();
 				User doctorUser = User.builder()
-						.firstName("Murphy")
-						.lastName("Parker")
+						.firstName("Claudel")
+						.lastName("Noubissie")
 						.username("doctor")
 						.email("doctor@doctor.com")
 						.password(passwordEncoder.encode("password")) // Encode the password
-						.role(Role.ADMIN)
+						.role(Role.DOCTOR)
 						.build();
 				User secUser = User.builder()
-						.firstName("Alice")
-						.lastName("Parker")
+						.firstName("Pepper")
+						.lastName("Nyangono")
 						.username("secretary")
 						.email("sec@secretary.com")
 						.password(passwordEncoder.encode("password")) // Encode the password
-						.role(Role.ADMIN)
+						.role(Role.SECRETARY)
 						.build();
 				userRepository.save(adminUser);
+        userRepository.save(doctorUser);
+        userRepository.save(secUser);
 				System.out.println(">>> Default admin user created: " + adminEmail);
 			} else {
 				System.out.println(">>> Admin user already exists.");
