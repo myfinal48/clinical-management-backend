@@ -69,6 +69,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/prescriptions/**").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.GET, "/api/v1/prescriptions").hasRole("DOCTOR")
                         .requestMatchers("/api/v1/audit/**").hasAnyRole("ADMIN", "DOCTOR", "SECRETARY")
+                        .requestMatchers("/api/v1/notifications/**").authenticated()
+                        .requestMatchers("/api/v1/notifications/send").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/notifications/schedule").hasRole("ADMIN")
                         .anyRequest().authenticated() // Require authentication for all other requests
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS)) // Use stateless sessions for
