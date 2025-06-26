@@ -2,7 +2,6 @@ package com.clinicapp.backend.controller.core;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -42,7 +41,7 @@ public class PrescriptionController {
         this.hospitalInfoService = hospitalInfoService;
     }
 
-    @Operation(summary = "Get all prescriptions (no pagination)")
+    @Operation(summary = "Get all prescriptions")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "List of prescriptions")
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
     @GetMapping("/all")
