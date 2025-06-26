@@ -1,72 +1,81 @@
 package com.clinicapp.backend.service.core;
 
 import com.clinicapp.backend.model.core.AuditLog;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import com.clinicapp.backend.dto.core.AuditLogDTO;
 
 public interface AuditService {
 
-    /**
-     * Enregistre une action d'audit générique
-     */
-    void logAction(Long userId, String username, String userRole, String action,
-            String entityType, Long entityId, String details,
-            AuditLog.AuditSeverity severity);
+        /**
+         * Records a generic audit action
+         */
+        void logAction(Long userId, String username, String userRole, String action,
+                        String entityType, Long entityId, String details,
+                        AuditLog.AuditSeverity severity);
 
-    /**
-     * Enregistre une création d'entité
-     */
-    void logCreation(Long userId, String username, String userRole,
-            String entityType, Long entityId, Object newData);
+        /**
+         * Records an entity creation
+         */
+        void logCreation(Long userId, String username, String userRole,
+                        String entityType, Long entityId, Object newData);
 
-    /**
-     * Enregistre une modification d'entité
-     */
-    void logUpdate(Long userId, String username, String userRole,
-            String entityType, Long entityId, Object oldData, Object newData);
+        /**
+         * Records an entity modification
+         */
+        void logUpdate(Long userId, String username, String userRole,
+                        String entityType, Long entityId, Object oldData, Object newData);
 
-    /**
-     * Enregistre une suppression d'entité
-     */
-    void logDeletion(Long userId, String username, String userRole,
-            String entityType, Long entityId, Object deletedData);
+        /**
+         * Records an entity deletion
+         */
+        void logDeletion(Long userId, String username, String userRole,
+                        String entityType, Long entityId, Object deletedData);
 
-    /**
-     * Enregistre une action de sécurité (connexion, déconnexion, etc.)
-     */
-    void logSecurityEvent(Long userId, String username, String userRole,
-            String action, String details);
+        /**
+         * Records a security action (login, logout, etc.)
+         */
+        void logSecurityEvent(Long userId, String username, String userRole,
+                        String action, String details);
 
-    /**
-     * Enregistre une erreur système
-     */
-    void logSystemError(String action, String details, Exception exception);
+        /**
+         * Records a system error
+         */
+        void logSystemError(String action, String details, Exception exception);
 
-    /**
-     * Enregistre une tentative d'accès non autorisé
-     */
-    void logUnauthorizedAccess(String username, String ipAddress, String resource);
+        /**
+         * Records an unauthorized access attempt
+         */
+        void logUnauthorizedAccess(String username, String ipAddress, String resource);
 
-    /**
-     * Enregistre une action de notification
-     */
-    void logNotificationSent(Long senderId, Long recipientId, String notificationType, String details);
+        /**
+         * Records a notification action
+         */
+        void logNotificationSent(Long senderId, Long recipientId, String notificationType, String details);
 
-    /**
-     * Enregistre une action de rendez-vous
-     */
-    void logAppointmentAction(Long userId, String username, String userRole,
-            String action, Long appointmentId, String details);
+        /**
+         * Records an appointment action
+         */
+        void logAppointmentAction(Long userId, String username, String userRole,
+                        String action, Long appointmentId, String details);
 
-    /**
-     * Enregistre une action de prescription
-     */
-    void logPrescriptionAction(Long userId, String username, String userRole,
-            String action, Long prescriptionId, String details);
+        /**
+         * Records a prescription action
+         */
+        void logPrescriptionAction(Long userId, String username, String userRole,
+                        String action, Long prescriptionId, String details);
 
-    /**
-     * Enregistre une action de facture
-     */
-    void logInvoiceAction(Long userId, String username, String userRole,
-            String action, Long invoiceId, String details);
+        /**
+         * Records an invoice action
+         */
+        void logInvoiceAction(Long userId, String username, String userRole,
+                        String action, Long invoiceId, String details);
+
+        Page<AuditLogDTO> getAuditLogsByUser(Long userId, Pageable pageable);
+
+        Page<AuditLogDTO> getAuditLogsByEntity(String entityType, Long entityId, Pageable pageable);
+
+        Page<AuditLogDTO> getAuditLogsByAction(String action, Pageable pageable);
+
+        Page<AuditLogDTO> getAuditLogsBySeverity(AuditLog.AuditSeverity severity, Pageable pageable);
 }
-
-

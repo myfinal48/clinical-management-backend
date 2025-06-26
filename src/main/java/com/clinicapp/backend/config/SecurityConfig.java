@@ -58,7 +58,8 @@ public class SecurityConfig {
                         .requestMatchers(SWAGGER_WHITELIST).permitAll()
                         .requestMatchers("/ws/**").permitAll() // Allow WebSocket handshake/SockJS endpoint
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Explicitly allow ADMIN access to user endpoints here for diagnostics (Can be removed if @PreAuthorize works)
+                        // Explicitly allow ADMIN access to user endpoints here for diagnostics (Can be
+                        // removed if @PreAuthorize works)
                         .requestMatchers(HttpMethod.POST, "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/admin/users/**").hasRole("ADMIN")
@@ -67,11 +68,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/prescriptions/**").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/prescriptions/**").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.GET, "/api/v1/prescriptions").hasRole("DOCTOR")
+                        .requestMatchers("/api/v1/audit/**").hasAnyRole("ADMIN", "DOCTOR", "SECRETARY")
                         .anyRequest().authenticated() // Require authentication for all other requests
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS)) // Use stateless sessions for JWT
+                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS)) // Use stateless sessions for
+                                                                                        // JWT
                 .authenticationProvider(authenticationProvider()) // Set the custom authentication provider
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // Add JWT filter before standard auth filter
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // Add JWT filter before
+                                                                                             // standard auth filter
 
         return http.build();
     }
@@ -113,12 +117,13 @@ public class SecurityConfig {
         return source;
     }
 
-    // --- Bean to remove the default ROLE_ prefix for hasRole checks (optional, for troubleshooting) ---
+    // --- Bean to remove the default ROLE_ prefix for hasRole checks (optional, for
+    // troubleshooting) ---
     // Re-commented as User model provides ROLE_ prefix correctly.
     /*
-    @Bean
-    public GrantedAuthorityDefaults grantedAuthorityDefaults() {
-        return new GrantedAuthorityDefaults(""); // Remove the ROLE_ prefix
-    }
-    */
+     * @Bean
+     * public GrantedAuthorityDefaults grantedAuthorityDefaults() {
+     * return new GrantedAuthorityDefaults(""); // Remove the ROLE_ prefix
+     * }
+     */
 }

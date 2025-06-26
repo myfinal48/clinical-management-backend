@@ -8,6 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import com.clinicapp.backend.dto.core.AuditLogDTO;
 
 import java.time.LocalDateTime;
 
@@ -154,7 +157,54 @@ public class AuditServiceImpl implements AuditService {
                 details, AuditLog.AuditSeverity.INFO);
     }
 
-    // Méthodes utilitaires pour récupérer les informations de la requête
+    @Override
+    public Page<AuditLogDTO> getAuditLogsByUser(Long userId, Pageable pageable) {
+        return auditLogRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
+                .map(this::toDTO);
+    }
+
+    @Override
+    public Page<AuditLogDTO> getAuditLogsByEntity(String entityType, Long entityId, Pageable pageable) {
+        return auditLogRepository.findByEntityTypeAndEntityIdOrderByCreatedAtDesc(entityType, entityId, pageable)
+                .map(this::toDTO);
+    }
+
+    @Override
+    public Page<AuditLogDTO> getAuditLogsByAction(String action, Pageable pageable) {
+        return auditLogRepository.findByActionOrderByCreatedAtDesc(action, pageable)
+                .map(this::toDTO);
+    }
+
+    @Override
+    public Page<AuditLogDTO> getAuditLogsBySeverity(AuditLog.AuditSeverity severity, Pageable pageable) {
+        return auditLogRepository.findBySeverityOrderByCreatedAtDesc(severity, pageable)
+                .map(this::toDTO);
+    }
+
+    private AuditLogDTO toDTO(AuditLog auditLog) {
+        if (auditLog == null)
+            return null;
+        AuditLogDTO dto = new AuditLogDTO();
+        dto.setId(auditLog.getId());
+        dto.setUserId(auditLog.getUserId());
+        dto.setUsername(auditLog.getUsername());
+        dto.setUserRole(auditLog.getUserRole());
+        dto.setAction(auditLog.getAction());
+        dto.setEntityType(auditLog.getEntityType());
+        dto.setEntityId(auditLog.getEntityId());
+        dto.setOldValues(auditLog.getOldValues());
+        dto.setNewValues(auditLog.getNewValues());
+        dto.setIpAddress(auditLog.getIpAddress());
+        dto.setUserAgent(auditLog.getUserAgent());
+        dto.setRequestUrl(auditLog.getRequestUrl());
+        dto.setRequestMethod(auditLog.getRequestMethod());
+        dto.setDetails(auditLog.getDetails());
+        dto.setSeverity(auditLog.getSeverity());
+        dto.setCreatedAt(auditLog.getCreatedAt());
+        return dto;
+    }
+
+    // Utility methods to retrieve request information
     private String getClientIpAddress() {
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder

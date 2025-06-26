@@ -14,29 +14,29 @@ import java.util.List;
 @Repository
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
-    // Trouver les logs par utilisateur
+    // Find logs by user
     Page<AuditLog> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
-    // Trouver les logs par entité
+    // Find logs by entity
     Page<AuditLog> findByEntityTypeAndEntityIdOrderByCreatedAtDesc(String entityType, Long entityId, Pageable pageable);
 
-    // Trouver les logs par action
+    // Find logs by action
     Page<AuditLog> findByActionOrderByCreatedAtDesc(String action, Pageable pageable);
 
-    // Trouver les logs par sévérité
+    // Find logs by severity
     Page<AuditLog> findBySeverityOrderByCreatedAtDesc(AuditLog.AuditSeverity severity, Pageable pageable);
 
-    // Trouver les logs dans une période
+    // Find logs within a date range
     @Query("SELECT a FROM AuditLog a WHERE a.createdAt BETWEEN :startDate AND :endDate ORDER BY a.createdAt DESC")
     Page<AuditLog> findByDateRange(@Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
             Pageable pageable);
 
-    // Trouver les logs critiques récents
+    // Find recent critical logs
     @Query("SELECT a FROM AuditLog a WHERE a.severity = 'CRITICAL' AND a.createdAt >= :since ORDER BY a.createdAt DESC")
     List<AuditLog> findCriticalLogsSince(@Param("since") LocalDateTime since);
 
-    // Statistiques par action
+    // Action statistics
     @Query("SELECT a.action, COUNT(a) FROM AuditLog a WHERE a.createdAt >= :since GROUP BY a.action")
     List<Object[]> getActionStats(@Param("since") LocalDateTime since);
 }
