@@ -6,5 +6,6 @@ public interface DashboardService {
     // --- Admin Stats ---
     long getTotalPatients();
     long getActiveStaffCount(); // Doctors + Secretaries
+    Object getStats();
 
 }

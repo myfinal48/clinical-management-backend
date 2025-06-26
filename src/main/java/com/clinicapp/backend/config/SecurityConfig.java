@@ -65,6 +65,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, PRESCRIPTIONS_ENDPOINT).hasRole(ROLE_DOCTOR)
                         .requestMatchers(HttpMethod.PUT, PRESCRIPTIONS_ENDPOINT).hasRole(ROLE_DOCTOR)
                         .requestMatchers(HttpMethod.POST, PRESCRIPTIONS_ENDPOINT).hasRole(ROLE_DOCTOR)
+                        // Only users with the DOCTOR role can create appointments
                         .requestMatchers(HttpMethod.POST, "/api/appointments").hasRole(ROLE_DOCTOR)
                         .anyRequest().authenticated() // Require authentication for all other requests
                 )
