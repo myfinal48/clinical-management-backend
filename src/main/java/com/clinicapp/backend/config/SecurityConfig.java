@@ -73,6 +73,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/notifications/send").hasRole("ADMIN")
                         .requestMatchers("/api/v1/notifications/schedule").hasRole("ADMIN")
                         .requestMatchers("/api/v1/email/test/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/chat/**").authenticated()
                         .anyRequest().authenticated() // Require authentication for all other requests
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS)) // Use stateless sessions for
