@@ -1,6 +1,7 @@
 package com.clinicapp.backend.controller.core;
 
 import com.clinicapp.backend.dto.core.AuditLogDTO;
+import com.clinicapp.backend.model.core.AuditAction;
 import com.clinicapp.backend.model.core.AuditLog;
 import com.clinicapp.backend.service.core.AuditService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,9 +37,10 @@ public class AuditController {
 
     @GetMapping("/action/{action}")
     @Operation(summary = "Get audit logs by action", description = "Get all audit logs for a specific action")
-    public ResponseEntity<List<AuditLogDTO>> getAuditLogsByAction(@PathVariable String action) {
-        return ResponseEntity.ok(auditService.getAuditLogsByAction(action));
+    public ResponseEntity<List<AuditLogDTO>> getAuditLogsByAction(@PathVariable AuditAction action) {
+        return ResponseEntity.ok(auditService.getAuditLogsByAction(action.name()));
     }
+
 
     @GetMapping("/severity/{severity}")
     @Operation(summary = "Get audit logs by severity", description = "Get all audit logs for a specific severity level")
