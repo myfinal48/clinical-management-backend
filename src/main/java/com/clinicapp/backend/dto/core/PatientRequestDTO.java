@@ -27,8 +27,8 @@ public class PatientRequestDTO {
     @PastOrPresent(message = "Date of birth must be in the past or present")
     private LocalDate dateOfBirth;
 
-    @NotBlank(message = "Gender cannot be blank")
-    private String gender;
+    @Enumerated
+    private Gender gender;
 
     @NotBlank(message = "Address cannot be blank")
     private String address;
