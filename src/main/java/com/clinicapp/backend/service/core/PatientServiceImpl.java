@@ -42,7 +42,7 @@ public class PatientServiceImpl implements PatientService {
                 .firstName(patientDTO.getFirstName())
                 .lastName(patientDTO.getLastName())
                 .dateOfBirth(patientDTO.getDateOfBirth())
-                .gender(Gender.valueOf(patientDTO.getGender()))
+                .gender(patientDTO.getGender())
                 .address(patientDTO.getAddress())
                 .phoneNumber(patientDTO.getPhoneNumber())
                 .email(patientDTO.getEmail())
@@ -55,7 +55,7 @@ public class PatientServiceImpl implements PatientService {
         patient.setFirstName(patientDTO.getFirstName());
         patient.setLastName(patientDTO.getLastName());
         patient.setDateOfBirth(patientDTO.getDateOfBirth());
-        patient.setGender(Gender.valueOf(patientDTO.getGender()));
+        patient.setGender(patientDTO.getGender());
         patient.setAddress(patientDTO.getAddress());
         patient.setPhoneNumber(patientDTO.getPhoneNumber());
         patient.setEmail(patientDTO.getEmail());
