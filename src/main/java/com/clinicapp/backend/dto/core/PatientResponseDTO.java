@@ -17,6 +17,7 @@ public class PatientResponseDTO {
     private Long id;
     private String firstName;
     private String lastName;
+    private String patientName;
     private LocalDate dateOfBirth;
     private Gender gender;
     private String address;

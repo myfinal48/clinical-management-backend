@@ -125,6 +125,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         dto.setReason(appointment.getReason());
         dto.setDoctor(appointment.getDoctor());
         dto.setPatientId(appointment.getPatient().getId());
+        dto.setPatientName(appointment.getPatient().getFirstName() + " " + appointment.getPatient().getLastName());
         dto.setStatus(appointment.getStatus().name());
         dto.setCancellationInitiator(appointment.getCancellationInitiator());
         dto.setCancellationReason(appointment.getCancellationReason());
