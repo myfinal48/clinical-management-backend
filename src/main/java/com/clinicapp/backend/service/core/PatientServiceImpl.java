@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -67,7 +68,7 @@ public class PatientServiceImpl implements PatientService {
     public List<PatientResponseDTO> getAllPatients() {
         return patientRepository.findAll().stream()
                 .map(this::mapToResponseDTO)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
