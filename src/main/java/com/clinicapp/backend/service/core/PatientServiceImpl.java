@@ -25,7 +25,6 @@ public class PatientServiceImpl implements PatientService {
                 .id(patient.getId())
                 .firstName(patient.getFirstName())
                 .lastName(patient.getLastName())
-                .patientName(patient.getFirstName() + " " + patient.getLastName())
                 .dateOfBirth(patient.getDateOfBirth())
                 .gender(patient.getGender())
                 .address(patient.getAddress())
