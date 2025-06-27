@@ -1,12 +1,16 @@
 package com.clinicapp.backend.model.core;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
 @Entity
+@NoArgsConstructor
+@AllArgsConstructor
 public class HospitalInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

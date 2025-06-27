@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
@@ -16,13 +17,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/hospital")
 public class HospitalInfoController {
     private final HospitalInfoService service;
-
-    public HospitalInfoController(HospitalInfoService service) {
-        this.service = service;
-    }
 
     @Operation(summary = "Get hospital information")
     @ApiResponses(value = {

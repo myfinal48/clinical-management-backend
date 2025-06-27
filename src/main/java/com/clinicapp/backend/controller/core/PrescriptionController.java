@@ -2,6 +2,8 @@ package com.clinicapp.backend.controller.core;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -26,20 +28,13 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/prescriptions")
 public class PrescriptionController {
 
     private final PrescriptionService prescriptionService;
     private final PdfGenerator pdfGenerator;
     private final HospitalInfoService hospitalInfoService;
-
-    public PrescriptionController(PrescriptionService prescriptionService,
-                                  PdfGenerator pdfGenerator,
-                                  HospitalInfoService hospitalInfoService) {
-        this.prescriptionService = prescriptionService;
-        this.pdfGenerator = pdfGenerator;
-        this.hospitalInfoService = hospitalInfoService;
-    }
 
     @Operation(summary = "Get all prescriptions")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "List of prescriptions")
