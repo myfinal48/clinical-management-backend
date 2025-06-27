@@ -13,6 +13,7 @@ public class AppointmentResponseDTO {
     private LocalDateTime dateTime;
     private String reason;
     private Long patientId;
+    private String patientName;
     private String doctor;
     private String status;
     private String cancellationInitiator;

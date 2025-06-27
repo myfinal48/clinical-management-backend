@@ -2,6 +2,9 @@ package com.clinicapp.backend.dto.core;
 
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Entity;
+
+@Entity
 public class Appointment {
     private Long id;
     private LocalDateTime dateHeure;
