@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 import java.time.DayOfWeek;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.Comparator;
 
@@ -72,7 +71,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public List<AppointmentResponseDTO> listAppointments() {
-        return appointmentRepository.findAll().stream().map(this::toResponseDTO).collect(Collectors.toList());
+        return appointmentRepository.findAll().stream().map(this::toResponseDTO).toList();
     }
 
     @Override
@@ -148,7 +147,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<LocalDateTime> alternatives = new ArrayList<>();
         for (int i = -4; i <= 4; i++) {
             if (i == 0) continue;
-            LocalDateTime slot = desiredTime.plusMinutes(30 * i);
+            LocalDateTime slot = desiredTime.plusMinutes(30L * i);
             LocalDateTime slotEnd = slot.plus(duration).plusMinutes(BUFFER_MINUTES);
             if (!appointmentRepository.existsByDoctorAndDateTimeOverlap(doctor, slot, slotEnd)) {
                 alternatives.add(slot);
@@ -156,6 +155,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         return alternatives.stream()
                 .sorted(Comparator.comparing(slot -> Math.abs(Duration.between(desiredTime, slot).toMinutes())))
-                .collect(Collectors.toList());
+                .toList();
     }
 } 
