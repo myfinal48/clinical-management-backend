@@ -6,13 +6,11 @@ import com.clinicapp.backend.model.core.Patient;
 import com.clinicapp.backend.repository.core.PatientRepository;
 import com.clinicapp.backend.exceptions.ResourceNotFoundException;
 import com.clinicapp.backend.exceptions.BadRequestException;
-import com.clinicapp.backend.model.core.Gender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -70,7 +68,7 @@ public class PatientServiceImpl implements PatientService {
     public List<PatientResponseDTO> getAllPatients() {
         return patientRepository.findAll().stream()
                 .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
