@@ -9,6 +9,9 @@ import com.clinicapp.backend.service.UserService;
 import com.clinicapp.backend.service.core.ChatMessageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -33,12 +36,12 @@ public class ChatRestController {
     @PostMapping
     @Operation(summary = "Send message", description = "Send a chat message to another user")
     public ResponseEntity<ChatMessageDTO> sendMessage(
-            @RequestBody SendMessageRequest request,
+            @Valid @RequestBody SendMessageRequest request,
             Authentication authentication) {
 
         User currentUser = (User) authentication.getPrincipal();
 
-        // Create ChatMessage object
+        // Crée le message à partir des données validées
         ChatMessage message = ChatMessage.builder()
                 .content(request.getContent())
                 .senderId(currentUser.getId())
@@ -47,20 +50,22 @@ public class ChatRestController {
                 .type(ChatMessageEntity.MessageType.CHAT)
                 .build();
 
-        // Save message
+        // Sauvegarde du message
         ChatMessageDTO savedMessage = chatMessageService.saveMessage(message);
 
-        // Send via WebSocket to recipient
+        // Envoi WebSocket au destinataire
         messagingTemplate.convertAndSendToUser(
                 request.getRecipientId().toString(),
                 "/queue/messages",
-                savedMessage);
+                savedMessage
+        );
 
-        // Send confirmation to sender
+        // Confirmation à l'expéditeur
         messagingTemplate.convertAndSendToUser(
                 currentUser.getId().toString(),
                 "/queue/messages",
-                savedMessage);
+                savedMessage
+        );
 
         return ResponseEntity.ok(savedMessage);
     }
@@ -119,24 +124,17 @@ public class ChatRestController {
     public ResponseEntity<List<Map<String, Object>>> getParticipants(Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();
 
-        // Get all users with DOCTOR or SECRETARY role
-        List<User> doctorUsers = userService.getUsersByRole(Role.DOCTOR);
-        List<User> secretaryUsers = userService.getUsersByRole(Role.SECRETARY);
-
-        // Combine and filter out current user
-        List<Map<String, Object>> participants = doctorUsers.stream()
+        List<Map<String, Object>> participants = Stream.concat(
+                        userService.getUsersByRole(Role.DOCTOR).stream(),
+                        userService.getUsersByRole(Role.SECRETARY).stream()
+                )
                 .filter(user -> !user.getId().equals(currentUser.getId()))
                 .map(this::userToParticipantMap)
                 .toList();
 
-        List<Map<String, Object>> secretaryParticipants = secretaryUsers.stream()
-                .filter(user -> !user.getId().equals(currentUser.getId()))
-                .map(this::userToParticipantMap)
-                .toList();
-
-        // Combine both lists
-        return ResponseEntity.ok(Stream.concat(participants.stream(), secretaryParticipants.stream()).toList());
+        return ResponseEntity.ok(participants);
     }
+
 
     private Map<String, Object> userToParticipantMap(User user) {
         Map<String, Object> participantInfo = new HashMap<>();
@@ -149,10 +147,14 @@ public class ChatRestController {
 
     // Request DTO for sending messages
     public static class SendMessageRequest {
+
+        @NotBlank(message = "Le contenu du message est obligatoire")
         private String content;
+
+        @NotNull(message = "L'identifiant du destinataire est obligatoire")
         private Long recipientId;
 
-        // Getters and setters
+        // Getters et Setters
         public String getContent() {
             return content;
         }
