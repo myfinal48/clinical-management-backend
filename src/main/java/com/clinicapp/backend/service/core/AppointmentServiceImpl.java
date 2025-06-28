@@ -10,14 +10,16 @@ import com.clinicapp.backend.exceptions.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.DayOfWeek;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
-import java.util.Comparator;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +34,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional
     public AppointmentResponseDTO createAppointment(AppointmentRequestDTO dto) {
-        if (LocalDateTime.now().plusHours(MIN_BOOKING_HOURS).isAfter(dto.getDateTime())) {
+        if (OffsetDateTime.now().plusHours(MIN_BOOKING_HOURS).isAfter(dto.getDateTime())) {
             throw new BusinessException("Le rendez-vous doit être réservé au moins 2 heures à l'avance.");
         }
         DayOfWeek day = dto.getDateTime().getDayOfWeek();
@@ -40,9 +42,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY || hour < 8 || hour > 18) {
             throw new BusinessException("Aucun rendez-vous n'est autorisé la nuit ou le week-end.");
         }
-        LocalDateTime start = dto.getDateTime();
-        LocalDateTime end = start.plusMinutes(getDefaultDuration("GENERAL").toMinutes() + BUFFER_MINUTES);
-        if (appointmentRepository.existsByDoctorAndDateTimeOverlap(dto.getDoctor(), start, end)) {
+        OffsetDateTime start = dto.getDateTime();
+        OffsetDateTime end = start.plusMinutes(getDefaultDuration("GENERAL").toMinutes() + BUFFER_MINUTES);
+        if (appointmentRepository.existsByDoctorAndDateTimeOverlap(dto.getDoctor(), start.toLocalDateTime(), end.toLocalDateTime())) {
             throw new BusinessException("Le médecin a déjà un rendez-vous à ce créneau.");
         }
         if (!"EMERGENCY".equalsIgnoreCase(dto.getReason()) && appointmentRepository.existsByPatientAndDate(dto.getPatientId(), start.toLocalDate())) {
@@ -55,9 +57,10 @@ public class AppointmentServiceImpl implements AppointmentService {
             }
         }
         Appointment appointment = new Appointment();
-        appointment.setDateTime(dto.getDateTime());
+        appointment.setDateTime(start.toLocalDateTime());
         appointment.setReason(dto.getReason());
         appointment.setDoctor(dto.getDoctor());
+        appointment.setRoom(dto.getRoom());
         appointment.setStatus(Appointment.Status.SCHEDULED);
         Patient patient = patientRepository.findById(dto.getPatientId()).orElseThrow();
         appointment.setPatient(patient);
@@ -70,17 +73,19 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public List<AppointmentResponseDTO> listAppointments() {
-        return appointmentRepository.findAll().stream().map(this::toResponseDTO).toList();
+    public Page<AppointmentResponseDTO> listAppointments(Pageable pageable) {
+        Page<Appointment> page = appointmentRepository.findAll(pageable);
+        return page.map(this::toResponseDTO);
     }
 
     @Override
     @Transactional
     public AppointmentResponseDTO updateAppointment(Long id, AppointmentRequestDTO dto) {
         Appointment appointment = appointmentRepository.findById(id).orElseThrow();
-        appointment.setDateTime(dto.getDateTime());
+        appointment.setDateTime(dto.getDateTime().toLocalDateTime());
         appointment.setReason(dto.getReason());
         appointment.setDoctor(dto.getDoctor());
+        appointment.setRoom(dto.getRoom());
         if (dto.getPatientId() != null) {
             Patient patient = patientRepository.findById(dto.getPatientId()).orElseThrow();
             appointment.setPatient(patient);
@@ -123,6 +128,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         dto.setDateTime(appointment.getDateTime());
         dto.setReason(appointment.getReason());
         dto.setDoctor(appointment.getDoctor());
+        dto.setRoom(appointment.getRoom());
         dto.setPatientId(appointment.getPatient().getId());
         dto.setPatientName(appointment.getPatient().getFirstName() + " " + appointment.getPatient().getLastName());
         dto.setStatus(appointment.getStatus().name());
@@ -142,19 +148,47 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     // Proposer des créneaux alternatifs en cas de conflit
-    public List<LocalDateTime> findAlternativeSlots(String doctor, LocalDateTime desiredTime) {
-        Duration duration = getDefaultDuration("GENERAL");
-        List<LocalDateTime> alternatives = new ArrayList<>();
+    @Override
+    public List<java.time.OffsetDateTime> findAlternativeSlots(String doctor, java.time.OffsetDateTime desiredTime) {
+        java.time.Duration duration = getDefaultDuration("GENERAL");
+        List<java.time.OffsetDateTime> alternatives = new ArrayList<>();
         for (int i = -4; i <= 4; i++) {
             if (i == 0) continue;
-            LocalDateTime slot = desiredTime.plusMinutes(30L * i);
-            LocalDateTime slotEnd = slot.plus(duration).plusMinutes(BUFFER_MINUTES);
-            if (!appointmentRepository.existsByDoctorAndDateTimeOverlap(doctor, slot, slotEnd)) {
+            java.time.OffsetDateTime slot = desiredTime.plusMinutes(30L * i);
+            java.time.OffsetDateTime slotEnd = slot.plus(duration).plusMinutes(BUFFER_MINUTES);
+            if (!appointmentRepository.existsByDoctorAndDateTimeOverlap(doctor, slot.toLocalDateTime(), slotEnd.toLocalDateTime())) {
                 alternatives.add(slot);
             }
         }
         return alternatives.stream()
-                .sorted(Comparator.comparing(slot -> Math.abs(Duration.between(desiredTime, slot).toMinutes())))
+                .sorted(java.util.Comparator.comparing(slot -> Math.abs(java.time.Duration.between(desiredTime, slot).toMinutes())))
                 .toList();
+    }
+
+    @Override
+    public Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, Pageable pageable) {
+        Page<Appointment> page;
+        if (doctor != null && date != null) {
+            LocalDateTime start = LocalDateTime.parse(date + "T00:00:00");
+            LocalDateTime end = LocalDateTime.parse(date + "T23:59:59");
+            page = appointmentRepository.findByDoctorAndDateTimeBetween(doctor, start, end, pageable);
+        } else if (room != null && date != null) {
+            LocalDateTime start = LocalDateTime.parse(date + "T00:00:00");
+            LocalDateTime end = LocalDateTime.parse(date + "T23:59:59");
+            page = appointmentRepository.findByRoomAndDateTimeBetween(room, start, end, pageable);
+        } else {
+            page = appointmentRepository.findAll(pageable);
+        }
+        return page.map(this::toResponseDTO);
+    }
+
+    @Override
+    public List<AppointmentResponseDTO> listAppointments() {
+        throw new UnsupportedOperationException("Use the paginated version listAppointments(Pageable pageable)");
+    }
+
+    @Override
+    public List<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room) {
+        throw new UnsupportedOperationException("Use the paginated version listAppointmentsFiltered(String, String, String, Pageable)");
     }
 } 
