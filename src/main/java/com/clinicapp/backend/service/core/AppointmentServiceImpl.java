@@ -44,7 +44,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         OffsetDateTime start = dto.getDateTime();
         OffsetDateTime end = start.plusMinutes(getDefaultDuration("GENERAL").toMinutes() + BUFFER_MINUTES);
-        if (appointmentRepository.existsByDoctorAndDateTimeOverlap(dto.getDoctor(), start.toLocalDateTime(), end.toLocalDateTime())) {
+        if (appointmentRepository.existsByDoctorAndDateTimeOverlap(dto.getDoctorId(), start.toLocalDateTime(), end.toLocalDateTime())) {
             throw new BusinessException("Le médecin a déjà un rendez-vous à ce créneau.");
         }
         if (!"EMERGENCY".equalsIgnoreCase(dto.getReason()) && appointmentRepository.existsByPatientAndDate(dto.getPatientId(), start.toLocalDate())) {
@@ -52,14 +52,14 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         if ("EMERGENCY".equalsIgnoreCase(dto.getReason())) {
             int emergencyHour = start.getHour();
-            if (emergencyHour < 9 || emergencyHour >= 10) {
-                throw new BusinessException("Les urgences sont autorisées uniquement entre 9h00 et 10h00.");
+            if (emergencyHour < 5 || emergencyHour >= 23) {
+                throw new BusinessException("Les urgences sont autorisées uniquement entre 5h00 et 23h00.");
             }
         }
         Appointment appointment = new Appointment();
         appointment.setDateTime(start.toLocalDateTime());
         appointment.setReason(dto.getReason());
-        appointment.setDoctor(dto.getDoctor());
+        appointment.setDoctor(dto.getDoctorId());
         appointment.setRoom(dto.getRoom());
         if (dto.getStatus() != null) {
             appointment.setStatus(Appointment.Status.valueOf(dto.getStatus()));
@@ -88,7 +88,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment appointment = appointmentRepository.findById(id).orElseThrow();
         appointment.setDateTime(dto.getDateTime().toLocalDateTime());
         appointment.setReason(dto.getReason());
-        appointment.setDoctor(dto.getDoctor());
+        appointment.setDoctor(dto.getDoctorId());
         appointment.setRoom(dto.getRoom());
         if (dto.getPatientId() != null) {
             Patient patient = patientRepository.findById(dto.getPatientId()).orElseThrow();
