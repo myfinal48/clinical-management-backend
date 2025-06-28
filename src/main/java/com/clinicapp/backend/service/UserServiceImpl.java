@@ -105,4 +105,11 @@ public class UserServiceImpl implements UserService {
         Objects.requireNonNull(role, "Role cannot be null for filtering");
         return userRepository.findByRole(role).stream().map(this::mapToResponseDTO).toList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+    }
 }

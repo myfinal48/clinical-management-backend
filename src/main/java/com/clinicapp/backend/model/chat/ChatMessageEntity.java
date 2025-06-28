@@ -53,4 +53,15 @@ public class ChatMessageEntity {
 
     @Column(name = "read_at")
     private LocalDateTime readAt;
+
+    @Column(name = "reactions")
+    private String reactions; // JSON string: {"👍":2,"❤️":1}
+
+    @Builder.Default
+    @Column(name = "deleted_by_sender")
+    private Boolean deletedBySender = false;
+
+    @Builder.Default
+    @Column(name = "deleted_by_recipient")
+    private Boolean deletedByRecipient = false;
 }

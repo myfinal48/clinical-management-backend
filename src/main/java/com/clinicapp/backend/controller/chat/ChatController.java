@@ -1,6 +1,6 @@
 package com.clinicapp.backend.controller.chat;
 
-import com.clinicapp.backend.dto.core.ChatMessageDTO;
+import com.clinicapp.backend.mapper.ChatMessageDTO;
 import com.clinicapp.backend.model.chat.ChatMessage;
 import com.clinicapp.backend.model.security.User;
 import com.clinicapp.backend.service.core.ChatMessageService;
@@ -13,11 +13,9 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 @Controller

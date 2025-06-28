@@ -1,6 +1,6 @@
 package com.clinicapp.backend.controller.chat;
 
-import com.clinicapp.backend.dto.core.ChatMessageDTO;
+import com.clinicapp.backend.mapper.ChatMessageDTO;
 import com.clinicapp.backend.model.chat.ChatMessage;
 import com.clinicapp.backend.model.chat.ChatMessageEntity;
 import com.clinicapp.backend.model.security.Role;
@@ -40,13 +40,16 @@ public class ChatRestController {
             Authentication authentication) {
 
         User currentUser = (User) authentication.getPrincipal();
+        
+        // Find recipient by username
+        User recipient = userService.findByUsername(request.getRecipientName());
 
         // Crée le message à partir des données validées
         ChatMessage message = ChatMessage.builder()
                 .content(request.getContent())
                 .senderId(currentUser.getId())
                 .senderName(currentUser.getUsername())
-                .recipientId(request.getRecipientId())
+                .recipientId(recipient.getId())
                 .type(ChatMessageEntity.MessageType.CHAT)
                 .build();
 
@@ -55,7 +58,7 @@ public class ChatRestController {
 
         // Envoi WebSocket au destinataire
         messagingTemplate.convertAndSendToUser(
-                request.getRecipientId().toString(),
+                recipient.getId().toString(),
                 "/queue/messages",
                 savedMessage
         );
@@ -129,19 +132,48 @@ public class ChatRestController {
                         userService.getUsersByRole(Role.SECRETARY).stream()
                 )
                 .filter(user -> !user.getId().equals(currentUser.getId()))
-                .map(this::userToParticipantMap)
+                .map(this::userResponseToParticipantMap)
                 .toList();
 
         return ResponseEntity.ok(participants);
     }
 
 
-    private Map<String, Object> userToParticipantMap(User user) {
+    @DeleteMapping("/message/{messageId}")
+    @Operation(summary = "Delete message", description = "Delete a specific message by ID")
+    public ResponseEntity<Void> deleteMessage(
+            @PathVariable Long messageId,
+            Authentication authentication) {
+
+        User currentUser = (User) authentication.getPrincipal();
+        chatMessageService.deleteMessage(messageId, currentUser.getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/all")
+    @Operation(summary = "Delete all messages", description = "Delete all messages for the current user")
+    public ResponseEntity<Void> deleteAllMessages(Authentication authentication) {
+        User currentUser = (User) authentication.getPrincipal();
+        chatMessageService.deleteAllMessagesForUser(currentUser.getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/message/{id}/react")
+    @Operation(summary = "React to message", description = "Add emoji reaction to a message")
+    public ResponseEntity<Void> reactToMessage(
+            @PathVariable Long id,
+            @RequestParam String reaction,
+            Authentication authentication) {
+
+        User currentUser = (User) authentication.getPrincipal();
+        chatMessageService.reactToMessage(id, currentUser.getId(), reaction);
+        return ResponseEntity.ok().build();
+    }
+
+    private Map<String, Object> userResponseToParticipantMap(com.clinicapp.backend.dto.auth.UserResponseDTO user) {
         Map<String, Object> participantInfo = new HashMap<>();
         participantInfo.put("id", user.getId());
-        participantInfo.put("username", user.getUsername());
         participantInfo.put("fullName", user.getFirstName() + " " + user.getLastName());
-        participantInfo.put("role", user.getRole().name());
         return participantInfo;
     }
 
@@ -151,8 +183,8 @@ public class ChatRestController {
         @NotBlank(message = "Le contenu du message est obligatoire")
         private String content;
 
-        @NotNull(message = "L'identifiant du destinataire est obligatoire")
-        private Long recipientId;
+        @NotBlank(message = "Le nom du destinataire est obligatoire")
+        private String recipientName;
 
         // Getters et Setters
         public String getContent() {
@@ -163,12 +195,12 @@ public class ChatRestController {
             this.content = content;
         }
 
-        public Long getRecipientId() {
-            return recipientId;
+        public String getRecipientName() {
+            return recipientName;
         }
 
-        public void setRecipientId(Long recipientId) {
-            this.recipientId = recipientId;
+        public void setRecipientName(String recipientName) {
+            this.recipientName = recipientName;
         }
     }
 }

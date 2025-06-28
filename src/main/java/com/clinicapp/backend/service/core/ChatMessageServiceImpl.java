@@ -2,7 +2,7 @@ package com.clinicapp.backend.service.core;
 
 import com.clinicapp.backend.model.chat.ChatMessage;
 import com.clinicapp.backend.model.chat.ChatMessageEntity;
-import com.clinicapp.backend.dto.core.ChatMessageDTO;
+import com.clinicapp.backend.mapper.ChatMessageDTO;
 import com.clinicapp.backend.model.core.AuditLog;
 import com.clinicapp.backend.model.core.Notification;
 import com.clinicapp.backend.model.security.User;
@@ -188,5 +188,95 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                         log.error("Error getting conversation summaries", e);
                         return List.of(); // Return empty list on error
                 }
+        }
+
+        @Override
+        @Transactional
+        public void deleteMessage(Long messageId, Long userId) {
+                ChatMessageEntity message = chatMessageRepository.findById(messageId)
+                                .orElseThrow(() -> new EntityNotFoundException("Message not found with ID: " + messageId));
+
+                // Soft delete: mark as deleted for the current user only
+                if (message.getSender().getId().equals(userId)) {
+                        message.setDeletedBySender(true);
+                } else if (message.getRecipient().getId().equals(userId)) {
+                        message.setDeletedByRecipient(true);
+                } else {
+                        throw new SecurityException("User not authorized to delete this message");
+                }
+
+                chatMessageRepository.save(message);
+
+                // Log audit
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+                auditService.logAction(
+                                userId,
+                                user.getUsername(),
+                                user.getRole().name(),
+                                "CHAT_MESSAGE_DELETED",
+                                "CHAT",
+                                messageId,
+                                "Message hidden for user",
+                                AuditLog.AuditSeverity.INFO);
+        }
+
+        @Override
+        @Transactional
+        public void deleteAllMessagesForUser(Long userId) {
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+
+                List<ChatMessageEntity> messages = chatMessageRepository.findMessagesForUser(user);
+                
+                // Soft delete: mark messages as deleted for this user only
+                messages.forEach(message -> {
+                        if (message.getSender().getId().equals(userId)) {
+                                message.setDeletedBySender(true);
+                        }
+                        if (message.getRecipient().getId().equals(userId)) {
+                                message.setDeletedByRecipient(true);
+                        }
+                });
+                
+                chatMessageRepository.saveAll(messages);
+
+                // Log audit
+                auditService.logAction(
+                                userId,
+                                user.getUsername(),
+                                user.getRole().name(),
+                                "CHAT_ALL_MESSAGES_DELETED",
+                                "CHAT",
+                                null,
+                                "All messages hidden for user",
+                                AuditLog.AuditSeverity.INFO);
+        }
+
+        @Override
+        @Transactional
+        public void reactToMessage(Long messageId, Long userId, String reaction) {
+                ChatMessageEntity message = chatMessageRepository.findById(messageId)
+                                .orElseThrow(() -> new EntityNotFoundException("Message not found with ID: " + messageId));
+
+                // Check if user can react (sender or recipient)
+                if (!message.getSender().getId().equals(userId) && !message.getRecipient().getId().equals(userId)) {
+                        throw new SecurityException("User not authorized to react to this message");
+                }
+
+                // Update reactions (simple implementation - just store the reaction)
+                message.setReactions(reaction);
+                chatMessageRepository.save(message);
+
+                // Send WebSocket update
+                ChatMessageDTO updatedMessage = ChatMessageDTO.fromEntity(message);
+                messagingTemplate.convertAndSendToUser(
+                                message.getSender().getId().toString(),
+                                "/queue/reactions",
+                                updatedMessage);
+                messagingTemplate.convertAndSendToUser(
+                                message.getRecipient().getId().toString(),
+                                "/queue/reactions",
+                                updatedMessage);
         }
 }

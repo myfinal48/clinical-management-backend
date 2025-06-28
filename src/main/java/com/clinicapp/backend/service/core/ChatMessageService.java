@@ -1,6 +1,6 @@
 package com.clinicapp.backend.service.core;
 
-import com.clinicapp.backend.dto.core.ChatMessageDTO;
+import com.clinicapp.backend.mapper.ChatMessageDTO;
 import com.clinicapp.backend.model.chat.ChatMessage;
 
 import java.util.List;
@@ -40,4 +40,19 @@ public interface ChatMessageService {
      * Get conversation summaries (latest message with each user)
      */
     List<ChatMessageDTO> getConversationSummaries(Long userId);
+    
+    /**
+     * Delete a specific message by ID (only if user is sender or recipient)
+     */
+    void deleteMessage(Long messageId, Long userId);
+    
+    /**
+     * Delete all messages for a user (sent and received)
+     */
+    void deleteAllMessagesForUser(Long userId);
+    
+    /**
+     * Add reaction to a message
+     */
+    void reactToMessage(Long messageId, Long userId, String reaction);
 }

@@ -1,7 +1,8 @@
 package com.clinicapp.backend.service.core;
 
-import com.clinicapp.backend.exception.EmailException;
-import jakarta.mail.AuthenticationFailedException;
+
+
+import com.clinicapp.backend.exceptions.EmailException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;

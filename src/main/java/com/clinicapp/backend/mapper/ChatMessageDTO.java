@@ -1,4 +1,4 @@
-package com.clinicapp.backend.dto.core;
+package com.clinicapp.backend.mapper;
 
 import com.clinicapp.backend.model.chat.ChatMessageEntity;
 import com.clinicapp.backend.model.chat.ChatMessage;
@@ -26,6 +26,7 @@ public class ChatMessageDTO {
     private LocalDateTime readAt;
     @Schema(hidden = true)
     private String type;
+    private String reactions;
 
     // From Entity
     public static ChatMessageDTO fromEntity(ChatMessageEntity entity) {
@@ -42,8 +43,13 @@ public class ChatMessageDTO {
                 .isRead(entity.getIsRead())
                 .readAt(entity.getReadAt())
                 .type(entity.getType() != null ? entity.getType().name() : "CHAT")
+                .reactions(entity.getReactions())
                 .build();
     }
+
+
+
+
 
     // For WebSocket messages
     public static ChatMessageDTO fromWebSocket(ChatMessage message) {
