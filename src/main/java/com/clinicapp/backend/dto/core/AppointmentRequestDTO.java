@@ -26,4 +26,5 @@ public class AppointmentRequestDTO {
     private String doctor;
 
     private String room;
+    private String status;
 } 

@@ -61,7 +61,11 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setReason(dto.getReason());
         appointment.setDoctor(dto.getDoctor());
         appointment.setRoom(dto.getRoom());
-        appointment.setStatus(Appointment.Status.SCHEDULED);
+        if (dto.getStatus() != null) {
+            appointment.setStatus(Appointment.Status.valueOf(dto.getStatus()));
+        } else {
+            appointment.setStatus(Appointment.Status.SCHEDULED);
+        }
         Patient patient = patientRepository.findById(dto.getPatientId()).orElseThrow();
         appointment.setPatient(patient);
         return toResponseDTO(appointmentRepository.save(appointment));
@@ -89,6 +93,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (dto.getPatientId() != null) {
             Patient patient = patientRepository.findById(dto.getPatientId()).orElseThrow();
             appointment.setPatient(patient);
+        }
+        if (dto.getStatus() != null) {
+            appointment.setStatus(Appointment.Status.valueOf(dto.getStatus()));
         }
         return toResponseDTO(appointmentRepository.save(appointment));
     }
@@ -190,5 +197,13 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     public List<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room) {
         throw new UnsupportedOperationException("Use the paginated version listAppointmentsFiltered(String, String, String, Pageable)");
+    }
+
+    @Override
+    public AppointmentResponseDTO markAsCompleted(Long id) {
+        Appointment appointment = appointmentRepository.findById(id).orElseThrow();
+        appointment.setStatus(Appointment.Status.COMPLETED);
+        appointmentRepository.save(appointment);
+        return toResponseDTO(appointment);
     }
 } 
