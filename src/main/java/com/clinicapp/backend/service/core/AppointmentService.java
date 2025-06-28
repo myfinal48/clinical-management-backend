@@ -17,4 +17,5 @@ public interface AppointmentService {
     List<java.time.OffsetDateTime> findAlternativeSlots(String doctor, java.time.OffsetDateTime desiredTime);
     Page<AppointmentResponseDTO> listAppointments(Pageable pageable);
     Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, Pageable pageable);
+    AppointmentResponseDTO markAsCompleted(Long id);
 } 

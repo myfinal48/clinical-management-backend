@@ -84,4 +84,11 @@ public class AppointmentController {
     ) {
         return appointmentService.findAlternativeSlots(doctor, OffsetDateTime.parse(dateTime));
     }
+
+    @PreAuthorize("hasRole('SECRETARY')")
+    @PutMapping("/{id}/complete")
+    public ResponseEntity<AppointmentResponseDTO> markAsCompleted(@PathVariable Long id) {
+        AppointmentResponseDTO updated = appointmentService.markAsCompleted(id);
+        return ResponseEntity.ok(updated);
+    }
 } 
