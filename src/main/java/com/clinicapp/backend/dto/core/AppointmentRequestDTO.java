@@ -23,7 +23,7 @@ public class AppointmentRequestDTO {
     private Long patientId;
 
     @NotBlank
-    private String doctor;
+    private String doctorId;
 
     private String room;
     private String status;
