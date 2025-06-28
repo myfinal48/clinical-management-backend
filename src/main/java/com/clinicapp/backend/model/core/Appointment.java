@@ -27,6 +27,9 @@ public class Appointment {
     @Column(nullable = false)
     private String doctor;
 
+    @Column(nullable = false)
+    private String room;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.SCHEDULED;
@@ -37,6 +40,10 @@ public class Appointment {
     @Column
     private String cancellationReason;
 
+    /**
+     * Statuts possibles pour un rendez-vous :
+     * SCHEDULED, CONFIRMED, CANCELLED, IN_PROGRESS, COMPLETED, NO_SHOW, BILLED, LATE_CANCELLED, CLINIC_CANCELLED
+     */
     public enum Status {
         SCHEDULED, CONFIRMED, CANCELLED, IN_PROGRESS, COMPLETED, NO_SHOW, BILLED, LATE_CANCELLED, CLINIC_CANCELLED
     }

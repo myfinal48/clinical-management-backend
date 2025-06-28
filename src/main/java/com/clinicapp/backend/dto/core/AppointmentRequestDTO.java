@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Data
 @AllArgsConstructor
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class AppointmentRequestDTO {
     @NotNull
     @Future(message = "La date du rendez-vous doit être dans le futur.")
-    private LocalDateTime dateTime;
+    private OffsetDateTime dateTime;
 
     @NotBlank
     private String reason;
@@ -24,4 +24,6 @@ public class AppointmentRequestDTO {
 
     @NotBlank
     private String doctor;
+
+    private String room;
 } 

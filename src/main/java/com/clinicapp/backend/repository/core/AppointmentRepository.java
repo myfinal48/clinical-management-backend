@@ -1,6 +1,8 @@
 package com.clinicapp.backend.repository.core;
 
 import com.clinicapp.backend.model.core.Appointment;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -35,4 +37,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     // RDV d'urgence sur un créneau
     @Query("SELECT a FROM Appointment a WHERE a.dateTime BETWEEN :start AND :end AND a.status = 'SCHEDULED' AND a.reason = 'EMERGENCY'")
     List<Appointment> findEmergencyAppointmentsInSlot(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    List<Appointment> findByRoomAndDateTimeBetween(String room, LocalDateTime start, LocalDateTime end);
+
+    Page<Appointment> findByDoctorAndDateTimeBetween(String doctor, LocalDateTime start, LocalDateTime end, Pageable pageable);
+    Page<Appointment> findByRoomAndDateTimeBetween(String room, LocalDateTime start, LocalDateTime end, Pageable pageable);
 } 

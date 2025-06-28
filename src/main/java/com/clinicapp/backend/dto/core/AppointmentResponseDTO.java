@@ -15,6 +15,7 @@ public class AppointmentResponseDTO {
     private Long patientId;
     private String patientName;
     private String doctor;
+    private String room;
     private String status;
     private String cancellationInitiator;
     private String cancellationReason;
