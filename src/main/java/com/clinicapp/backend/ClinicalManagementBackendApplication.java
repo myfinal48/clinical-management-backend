@@ -30,7 +30,7 @@ public class ClinicalManagementBackendApplication {
 						.lastName("User")
 						.username("admin")
 						.email(adminEmail)
-							.password(passwordEncoder.encode("password")) // Encode the password
+						.password(passwordEncoder.encode("password")) // Encode the password
 						.role(Role.ADMIN)
 						.build();
 				User doctorUser = User.builder()
@@ -50,8 +50,8 @@ public class ClinicalManagementBackendApplication {
 						.role(Role.SECRETARY)
 						.build();
 				userRepository.save(adminUser);
-        userRepository.save(doctorUser);
-        userRepository.save(secUser);
+				userRepository.save(doctorUser);
+				userRepository.save(secUser);
 				System.out.println(">>> Default admin user created: " + adminEmail);
 			} else {
 				System.out.println(">>> Admin user already exists.");

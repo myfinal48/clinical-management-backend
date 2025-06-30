@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod; // Import HttpMethod
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.core.GrantedAuthorityDefaults;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -60,10 +59,14 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll() // Allow WebSocket handshake/SockJS endpoint
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Explicitly allow ADMIN access to user endpoints here for diagnostics (Can be removed if @PreAuthorize works)
-                        .requestMatchers(HttpMethod.POST, "/api/v1/admin/users/**").hasRole(String.valueOf(Role.ADMIN))
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/admin/users/**").hasRole(String.valueOf(Role.ADMIN))
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/admin/users/**").hasRole(String.valueOf(Role.ADMIN))
-                        .requestMatchers(HttpMethod.GET, "/api/v1/admin/users/**").hasRole(String.valueOf(Role.ADMIN))
+                        .requestMatchers(HttpMethod.POST, "/api/v1/admin/users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/admin/users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/admin/users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/admin/users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/prescriptions/**").hasRole("DOCTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/prescriptions/**").hasRole("DOCTOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/prescriptions/**").hasRole("DOCTOR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/prescriptions").hasRole("DOCTOR")
                         .anyRequest().authenticated() // Require authentication for all other requests
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS)) // Use stateless sessions for JWT
@@ -95,17 +98,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
         // Allow requests from the Angular frontend origin
-        // Read allowed origins from environment variable
-        String corsAllowedOrigins = env.getProperty("CORS_ALLOWED_ORIGINS",",");
-        List<String> allowedOrigins = Arrays.stream(corsAllowedOrigins.split(",")).map(String::trim).toList();
-        configuration.setAllowedOrigins(allowedOrigins);
-
+        configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://127.0.0.1:55235", "http://localhost:3000"));
         // Allow common HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         // Allow common headers
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type","Content-Disposition"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
         // Allow credentials (like cookies or auth tokens)
         configuration.setAllowCredentials(true);
 

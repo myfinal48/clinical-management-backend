@@ -50,7 +50,7 @@ public class Patient {
     private String phoneNumber;
 
     @Email(message = "Email should be valid")
-    @Column(unique = true) 
+    @Column(unique = true)
     private String email;
 
     @Lob

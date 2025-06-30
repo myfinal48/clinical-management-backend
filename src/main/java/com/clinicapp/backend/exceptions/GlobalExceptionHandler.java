@@ -74,4 +74,4 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .body("PDF generation error : " + ex.getMessage());
     }
 
-} 
+}
