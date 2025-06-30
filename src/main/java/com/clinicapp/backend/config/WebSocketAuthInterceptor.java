@@ -10,6 +10,7 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
@@ -56,7 +57,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                             accessor.setUser(authentication);
                             log.debug("Authenticated WebSocket user: {}", userEmail);
                         } else {
-                             log.warn("Invalid JWT token received in WebSocket connect header.");
+                            log.warn("Invalid JWT token received in WebSocket connect header.");
                         }
                     }
                 } catch (Exception e) {
@@ -64,7 +65,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                     // Optionally deny connection explicitly? For now, let it proceed unauthenticated.
                 }
             } else {
-                 log.warn("No Authorization Bearer token found in WebSocket connect header.");
+                log.warn("No Authorization Bearer token found in WebSocket connect header.");
             }
         }
         // For other commands (SUBSCRIBE, SEND, etc.), the established security context should be used.

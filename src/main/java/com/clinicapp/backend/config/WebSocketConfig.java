@@ -30,21 +30,25 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // e.g., a message sent to "/app/chat" will be routed to a controller method mapped to "/chat"
         config.setApplicationDestinationPrefixes("/app");
 
-
+        // Configure the prefix used for user-specific destinations (e.g., for private messages)
+        // Allows sending messages directly to a user's queue like "/user/queue/reply"
         config.setUserDestinationPrefix("/user");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-
+        // Register the "/ws" endpoint, enabling SockJS fallback options so that alternate transports
+        // may be used if WebSocket is not available. SockJS is recommended for browser compatibility.
+        // The endpoint is where clients will connect to the WebSocket server.
+        // Allow all origins for now - restrict this in production!
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*") // 
+                .setAllowedOriginPatterns("*") // TODO: Restrict origins in production!
                 .withSockJS();
     }
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        // Register our custom interceptor to handle authentTODO: Restrict origins in production!ication
+        // Register our custom interceptor to handle authentication
         registration.interceptors(webSocketAuthInterceptor);
     }
 }
