@@ -172,7 +172,7 @@ public class ChatRestController {
 
     private Map<String, Object> userResponseToParticipantMap(com.clinicapp.backend.dto.auth.UserResponseDTO user) {
         Map<String, Object> participantInfo = new HashMap<>();
-        //participantInfo.put("id", user.getId());
+        participantInfo.put("id", user.getId());
         participantInfo.put("fullName", user.getUsername());
         return participantInfo;
     }
