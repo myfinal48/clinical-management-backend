@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 @RestController
-@RequestMapping("/api/v1/chat")
+@RequestMapping("${api.prefix}/chat")
 @RequiredArgsConstructor
 @Tag(name = "Chat", description = "Chat message operations")
 public class ChatRestController {

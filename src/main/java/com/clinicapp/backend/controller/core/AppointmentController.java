@@ -16,7 +16,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/appointments")
+@RequestMapping("${api.prefix}/appointments")
 @RequiredArgsConstructor
 public class AppointmentController {
 
