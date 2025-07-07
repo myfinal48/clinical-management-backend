@@ -1,9 +1,9 @@
 package com.clinicapp.backend.controller.chat;
 
-import com.clinicapp.backend.mapper.ChatMessageDTO;
+import com.clinicapp.backend.mapper.chat.ChatMessageDTO;
 import com.clinicapp.backend.model.chat.ChatMessage;
 import com.clinicapp.backend.model.security.User;
-import com.clinicapp.backend.service.core.ChatMessageService;
+import com.clinicapp.backend.service.chat.ChatMessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;

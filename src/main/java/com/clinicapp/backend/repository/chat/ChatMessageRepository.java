@@ -1,4 +1,4 @@
-package com.clinicapp.backend.repository.core;
+package com.clinicapp.backend.repository.chat;
 
 import com.clinicapp.backend.model.chat.ChatMessageEntity;
 import com.clinicapp.backend.model.security.User;

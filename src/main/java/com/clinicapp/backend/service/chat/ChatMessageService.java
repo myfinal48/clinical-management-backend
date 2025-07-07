@@ -1,6 +1,6 @@
-package com.clinicapp.backend.service.core;
+package com.clinicapp.backend.service.chat;
 
-import com.clinicapp.backend.mapper.ChatMessageDTO;
+import com.clinicapp.backend.mapper.chat.ChatMessageDTO;
 import com.clinicapp.backend.model.chat.ChatMessage;
 
 import java.util.List;

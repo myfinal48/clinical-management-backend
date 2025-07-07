@@ -1,18 +1,17 @@
-package com.clinicapp.backend.service.core;
+package com.clinicapp.backend.service.chat;
 
 import com.clinicapp.backend.model.chat.ChatMessage;
 import com.clinicapp.backend.model.chat.ChatMessageEntity;
-import com.clinicapp.backend.mapper.ChatMessageDTO;
+import com.clinicapp.backend.mapper.chat.ChatMessageDTO;
 import com.clinicapp.backend.model.core.AuditLog;
-import com.clinicapp.backend.model.core.Notification;
 import com.clinicapp.backend.model.security.User;
-import com.clinicapp.backend.repository.core.ChatMessageRepository;
+import com.clinicapp.backend.repository.chat.ChatMessageRepository;
 import com.clinicapp.backend.repository.security.UserRepository;
+import com.clinicapp.backend.service.core.AuditService;
+import com.clinicapp.backend.service.core.NotificationService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

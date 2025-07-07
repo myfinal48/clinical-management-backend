@@ -1,4 +1,4 @@
-package com.clinicapp.backend.mapper;
+package com.clinicapp.backend.mapper.chat;
 
 import com.clinicapp.backend.model.chat.ChatMessageEntity;
 import com.clinicapp.backend.model.chat.ChatMessage;
