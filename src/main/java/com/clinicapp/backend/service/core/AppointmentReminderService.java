@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 @Slf4j
 public class AppointmentReminderService {
 
-    private final NotificationService notificationService;
     // Note: You'll need to inject your AppointmentService when it's available
     // private final AppointmentService appointmentService;
 
@@ -84,12 +83,16 @@ public class AppointmentReminderService {
                                  String patientEmail, LocalDateTime appointmentTime, 
                                  String doctorName, String clinicAddress) {
         try {
+            // This is a placeholder implementation
+            // You'll need to adapt this based on your Appointment entity structure
+            /*
             notificationService.sendAppointmentReminder(
                 patientId, appointmentId, patientName, appointmentTime, 
                 patientEmail, doctorName, clinicAddress
             );
             
             log.info("Manual appointment reminder sent for appointment ID: {}", appointmentId);
+            */
             
         } catch (Exception e) {
             log.error("Failed to send manual appointment reminder for ID: {}", appointmentId, e);

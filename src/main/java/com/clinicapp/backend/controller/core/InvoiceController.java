@@ -1,6 +1,5 @@
 package com.clinicapp.backend.controller.core;
 
-import com.clinicapp.backend.annotation.Auditable;
 import com.clinicapp.backend.dto.core.InvoiceRequestDTO;
 import com.clinicapp.backend.dto.core.InvoiceResponseDTO;
 import com.clinicapp.backend.service.core.InvoiceService;
@@ -20,7 +19,6 @@ public class InvoiceController {
 
     @PostMapping
     @PreAuthorize("hasRole('SECRETARY')")
-    @Auditable(action = "CREATE_INVOICE", entityType = "INVOICE", logParameters = true)
     public ResponseEntity<InvoiceResponseDTO> createInvoice(@RequestBody InvoiceRequestDTO dto) {
         InvoiceResponseDTO created = invoiceService.createInvoice(dto);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
@@ -28,7 +26,6 @@ public class InvoiceController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('SECRETARY')")
-    @Auditable(action = "UPDATE_INVOICE", entityType = "INVOICE", logParameters = true)
     public ResponseEntity<InvoiceResponseDTO> updateInvoice(@PathVariable Long id, @RequestBody InvoiceRequestDTO dto) {
         InvoiceResponseDTO updated = invoiceService.updateInvoice(id, dto);
         return ResponseEntity.ok(updated);
@@ -36,7 +33,6 @@ public class InvoiceController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SECRETARY')")
-    @Auditable(action = "DELETE_INVOICE", entityType = "INVOICE", logParameters = true, logResult = false)
     public ResponseEntity<Void> deleteInvoice(@PathVariable Long id) {
         invoiceService.deleteInvoice(id);
         return ResponseEntity.noContent().build();
@@ -62,7 +58,6 @@ public class InvoiceController {
 
     @PutMapping("/{id}/pay")
     @PreAuthorize("hasRole('SECRETARY')")
-    @Auditable(action = "MARK_INVOICE_PAID", entityType = "INVOICE", logParameters = true)
     public ResponseEntity<InvoiceResponseDTO> markAsPaid(@PathVariable Long id) {
         InvoiceResponseDTO paidInvoice = invoiceService.markAsPaid(id);
         return ResponseEntity.ok(paidInvoice);

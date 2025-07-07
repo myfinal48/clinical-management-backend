@@ -5,7 +5,6 @@ import com.clinicapp.backend.dto.auth.LoginRequest;
 import com.clinicapp.backend.dto.auth.RegisterRequest;
 import com.clinicapp.backend.model.security.User;
 import com.clinicapp.backend.repository.security.UserRepository;
-import com.clinicapp.backend.service.core.AuditService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,7 +23,6 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final AuditService auditService;
 
     /**
      * Registers a new user.
@@ -52,9 +50,6 @@ public class AuthService {
                 .build();
 
         userRepository.save(user); // Save the new user
-
-        // Log user registration
-        auditService.logRegistration(user.getId(), user.getUsername(), user.getRole().name());
 
         // Generate JWT token for the new user
         var jwtToken = jwtService.generateToken(user);
@@ -84,18 +79,12 @@ public class AuthService {
             // Log failed login attempt
             String ipAddress = getClientIpAddress();
             String userAgent = getUserAgent();
-            auditService.logFailedLogin(request.getEmail(), ipAddress, userAgent, e.getMessage());
             throw e; // Re-throw the exception
         }
 
         // If authentication is successful, find the user by email
         var user = userRepository.findByEmail(request.getEmail()) // Find by email
                 .orElseThrow(() -> new IllegalStateException("User not found after successful authentication")); // Should not happen
-
-        // Log successful login
-        String ipAddress = getClientIpAddress();
-        String userAgent = getUserAgent();
-        auditService.logLogin(user.getId(), user.getUsername(), user.getRole().name(), ipAddress, userAgent);
 
         // Generate JWT token
         var jwtToken = jwtService.generateToken(user);

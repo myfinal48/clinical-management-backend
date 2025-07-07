@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface ChatMessageService {
     /**
-     * Save a new chat message and send notification
+     * Save a new chat message
      */
     ChatMessageDTO saveMessage(ChatMessage message);
     

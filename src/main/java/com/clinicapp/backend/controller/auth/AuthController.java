@@ -1,6 +1,5 @@
 package com.clinicapp.backend.controller.auth;
 
-import com.clinicapp.backend.annotation.Auditable;
 import com.clinicapp.backend.dto.auth.AuthResponse;
 import com.clinicapp.backend.dto.auth.LoginRequest;
 import com.clinicapp.backend.dto.auth.RegisterRequest;
@@ -23,7 +22,6 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    @Auditable(action = "USER_REGISTER", entityType = "USER", logParameters = false, logResult = false)
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request // Validate the request body
     ) {
@@ -39,7 +37,6 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Auditable(action = "USER_LOGIN", entityType = "USER", logParameters = false, logResult = false)
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request // Validate the request body
     ) {

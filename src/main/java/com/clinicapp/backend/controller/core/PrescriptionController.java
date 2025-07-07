@@ -1,6 +1,5 @@
 package com.clinicapp.backend.controller.core;
 
-import com.clinicapp.backend.annotation.Auditable;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -65,7 +64,6 @@ public class PrescriptionController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Prescription created")
     @PreAuthorize("hasRole('DOCTOR')")
     @PostMapping("/create")
-    @Auditable(action = "CREATE_PRESCRIPTION", entityType = "PRESCRIPTION", logParameters = true)
     public ResponseEntity<ApiResponse> createPrescription(
             @Valid @RequestBody PrescriptionCreationRequestDto dto) {
 
@@ -87,7 +85,6 @@ public class PrescriptionController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Prescription not found")
     @PreAuthorize("hasRole('DOCTOR')")
     @PutMapping("/update/{id}")
-    @Auditable(action = "UPDATE_PRESCRIPTION", entityType = "PRESCRIPTION", logParameters = true)
     public ResponseEntity<ApiResponse> updatePrescription(
             @PathVariable Long id,
             @Valid @RequestBody PrescriptionCreationRequestDto dto) {
@@ -104,7 +101,6 @@ public class PrescriptionController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Prescription not found")
     @PreAuthorize("hasRole('DOCTOR')")
     @DeleteMapping("/delete/{id}")
-    @Auditable(action = "DELETE_PRESCRIPTION", entityType = "PRESCRIPTION", logParameters = true, logResult = false)
     public ResponseEntity<ApiResponse> deletePrescription(@PathVariable Long id) {
         prescriptionService.delete(id);
         return ResponseEntity.ok(new ApiResponse("Prescription supprimée avec succès", null));
@@ -116,7 +112,6 @@ public class PrescriptionController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Prescription not found")
     @PreAuthorize("hasRole('DOCTOR')")
     @GetMapping("/{id}/pdf")
-    @Auditable(action = "GENERATE_PRESCRIPTION_PDF", entityType = "PRESCRIPTION", logParameters = true, logResult = false)
     public ResponseEntity<InputStreamResource> generatePrescriptionPdf(@PathVariable Long id) {
         Prescription prescription = prescriptionService.getById(id);
         var hospital = hospitalInfoService.getInfo();

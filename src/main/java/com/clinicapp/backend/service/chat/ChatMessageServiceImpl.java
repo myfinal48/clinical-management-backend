@@ -3,12 +3,9 @@ package com.clinicapp.backend.service.chat;
 import com.clinicapp.backend.model.chat.ChatMessage;
 import com.clinicapp.backend.model.chat.ChatMessageEntity;
 import com.clinicapp.backend.mapper.chat.ChatMessageDTO;
-import com.clinicapp.backend.model.core.AuditLog;
 import com.clinicapp.backend.model.security.User;
 import com.clinicapp.backend.repository.chat.ChatMessageRepository;
 import com.clinicapp.backend.repository.security.UserRepository;
-import com.clinicapp.backend.service.core.AuditService;
-import com.clinicapp.backend.service.core.NotificationService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,8 +23,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
         private final ChatMessageRepository chatMessageRepository;
         private final UserRepository userRepository;
-        private final NotificationService notificationService;
-        private final AuditService auditService;
         private final SimpMessagingTemplate messagingTemplate;
 
         @Override
@@ -54,26 +49,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                                         .build();
 
                         ChatMessageEntity savedEntity = chatMessageRepository.save(messageEntity);
-
-                        // 3. Create notification
-                        notificationService.sendMessageNotification(
-                                        recipient.getId(),
-                                        sender.getId(),
-                                        sender.getFirstName() + " " + sender.getLastName(),
-                                        message.getContent().length() > 30
-                                                        ? message.getContent().substring(0, 27) + "..."
-                                                        : message.getContent());
-
-                        // 4. Log audit
-                        auditService.logAction(
-                                        sender.getId(),
-                                        sender.getUsername(),
-                                        sender.getRole().name(),
-                                        "CHAT_MESSAGE_SENT",
-                                        "CHAT",
-                                        savedEntity.getId(),
-                                        "Message sent to: " + recipient.getUsername(),
-                                        AuditLog.AuditSeverity.INFO);
 
                         // 5. Return DTO
                         return ChatMessageDTO.fromEntity(savedEntity);
@@ -144,17 +119,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                                 });
 
                 chatMessageRepository.saveAll(messages);
-
-                // Log audit
-                auditService.logAction(
-                                recipient.getId(),
-                                recipient.getUsername(),
-                                recipient.getRole().name(),
-                                "CHAT_MESSAGES_READ",
-                                "CHAT",
-                                null,
-                                "Messages from " + sender.getUsername() + " marked as read",
-                                AuditLog.AuditSeverity.INFO);
         }
 
         @Override
@@ -205,19 +169,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 }
 
                 chatMessageRepository.save(message);
-
-                // Log audit
-                User user = userRepository.findById(userId)
-                                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
-                auditService.logAction(
-                                userId,
-                                user.getUsername(),
-                                user.getRole().name(),
-                                "CHAT_MESSAGE_DELETED",
-                                "CHAT",
-                                messageId,
-                                "Message hidden for user",
-                                AuditLog.AuditSeverity.INFO);
         }
 
         @Override
@@ -239,17 +190,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 });
                 
                 chatMessageRepository.saveAll(messages);
-
-                // Log audit
-                auditService.logAction(
-                                userId,
-                                user.getUsername(),
-                                user.getRole().name(),
-                                "CHAT_ALL_MESSAGES_DELETED",
-                                "CHAT",
-                                null,
-                                "All messages hidden for user",
-                                AuditLog.AuditSeverity.INFO);
         }
 
         @Override
