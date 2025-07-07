@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 @RestController
 @RequestMapping("${api.prefix}/chat")
 @RequiredArgsConstructor
-@Tag(name = "Chat", description = "Chat message operations")
+@Tag(name = "chat-controller", description = "Chat message operations")
 public class ChatRestController {
 
     private final ChatMessageService chatMessageService;
