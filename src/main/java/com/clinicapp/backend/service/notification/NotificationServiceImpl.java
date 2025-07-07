@@ -31,7 +31,6 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
-    private final EmailService emailService;
     private final UserNotificationRepository userNotificationRepository;
 
     @Override
@@ -120,23 +119,10 @@ public class NotificationServiceImpl implements NotificationService {
             return new HashSet<>(userRepository.findAllById(request.getUserIds()));
         }
 
-        return new HashSet<>(userRepository.findByCriteria(
-                request.getTargetRole(),
-                request.getSector()
-        ));
+        return new HashSet<>(userRepository.findByRole(request.getTargetRole()));
     }
 
     private void handleChannelDelivery(Notification notification, NotificationChannel channel) {
-        if (channel == NotificationChannel.EMAIL) {
-            notification.getUserNotifications().forEach(un ->
-                    emailService.sendEmail(
-                            un.getUser().getEmail(),
-                            notification.getSubject(),
-                            notification.getContent()
-                    )
-            );
-        }
-
         notification.getUserNotifications().forEach(un ->
                 messagingTemplate.convertAndSend(
                         "/topic/notifications/" + un.getUser().getId(),
