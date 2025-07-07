@@ -5,12 +5,15 @@ import com.clinicapp.backend.dto.auth.LoginRequest;
 import com.clinicapp.backend.dto.auth.RegisterRequest;
 import com.clinicapp.backend.model.security.User;
 import com.clinicapp.backend.repository.security.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Service
 @RequiredArgsConstructor
@@ -63,14 +66,21 @@ public class AuthService {
      * @throws AuthenticationException if authentication fails.
      */
     public AuthResponse login(LoginRequest request) {
-        // Authenticate the user using Spring Security's AuthenticationManager
-        // This will use our UserDetailsServiceImpl and PasswordEncoder
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(), // Use email from LoginRequest
-                        request.getPassword()
-                )
-        );
+        try {
+            // Authenticate the user using Spring Security's AuthenticationManager
+            // This will use our UserDetailsServiceImpl and PasswordEncoder
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(), // Use email from LoginRequest
+                            request.getPassword()
+                    )
+            );
+        } catch (AuthenticationException e) {
+            // Log failed login attempt
+            String ipAddress = getClientIpAddress();
+            String userAgent = getUserAgent();
+            throw e; // Re-throw the exception
+        }
 
         // If authentication is successful, find the user by email
         var user = userRepository.findByEmail(request.getEmail()) // Find by email
@@ -82,5 +92,35 @@ public class AuthService {
                 .token(jwtToken)
                 .user(user) // Add the user object to the response
                 .build();
+    }
+
+    // Utility methods to get request information
+    private String getClientIpAddress() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                String xForwardedFor = request.getHeader("X-Forwarded-For");
+                if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+                    return xForwardedFor.split(",")[0].trim();
+                }
+                return request.getRemoteAddr();
+            }
+        } catch (Exception e) {
+            // Log warning but don't fail the operation
+        }
+        return "unknown";
+    }
+
+    private String getUserAgent() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                return attributes.getRequest().getHeader("User-Agent");
+            }
+        } catch (Exception e) {
+            // Log warning but don't fail the operation
+        }
+        return "unknown";
     }
 }

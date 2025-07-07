@@ -7,7 +7,7 @@ import com.clinicapp.backend.service.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod; // Import HttpMethod
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -58,20 +58,20 @@ public class SecurityConfig {
                         .requestMatchers(SWAGGER_WHITELIST).permitAll()
                         .requestMatchers("/ws/**").permitAll() // Allow WebSocket handshake/SockJS endpoint
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Explicitly allow ADMIN access to user endpoints here for diagnostics (Can be removed if @PreAuthorize works)
+                        // Explicitly allow ADMIN access to user endpoints here for diagnostics (Can be
+                        // removed if @PreAuthorize works)
                         .requestMatchers(HttpMethod.POST, "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/admin/users/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/prescriptions/**").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/prescriptions/**").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/prescriptions/**").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/prescriptions").hasRole("DOCTOR")
+                        .requestMatchers("/api/v1/chat/**").authenticated()
                         .anyRequest().authenticated() // Require authentication for all other requests
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS)) // Use stateless sessions for JWT
+                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS)) // Use stateless sessions for
+                                                                                        // JWT
                 .authenticationProvider(authenticationProvider()) // Set the custom authentication provider
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // Add JWT filter before standard auth filter
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // Add JWT filter before
+                                                                                             // standard auth filter
 
         return http.build();
     }
@@ -94,31 +94,35 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder(); // Use BCrypt for password hashing
     }
 
-    // --- CORS Configuration Bean ---
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        // Allow requests from the Angular frontend origin
-        configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://127.0.0.1:55235", "http://localhost:3000"));
-        // Allow common HTTP methods
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        // Allow common headers
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
-        // Allow credentials (like cookies or auth tokens)
-        configuration.setAllowCredentials(true);
+     // --- CORS Configuration Bean ---
+     @Bean
+     public CorsConfigurationSource corsConfigurationSource() {
+         CorsConfiguration configuration = new CorsConfiguration();
+         // Allow requests from the Angular frontend origin
+         // Read allowed origins from environment variable
+         String corsAllowedOrigins = env.getProperty("CORS_ALLOWED_ORIGINS",",");
+         List<String> allowedOrigins = Arrays.stream(corsAllowedOrigins.split(",")).map(String::trim).toList();
+         configuration.setAllowedOrigins(allowedOrigins);
+         // Allow common HTTP methods
+         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+         // Allow common headers
+         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
+         // Allow credentials (like cookies or auth tokens)
+         configuration.setAllowCredentials(true);
+ 
+         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+         // Apply this configuration to all paths
+         source.registerCorsConfiguration("/**", configuration);
+         return source;
+     }
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // Apply this configuration to all paths
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
-
-    // --- Bean to remove the default ROLE_ prefix for hasRole checks (optional, for troubleshooting) ---
+    // --- Bean to remove the default ROLE_ prefix for hasRole checks (optional, for
+    // troubleshooting) ---
     // Re-commented as User model provides ROLE_ prefix correctly.
     /*
-    @Bean
-    public GrantedAuthorityDefaults grantedAuthorityDefaults() {
-        return new GrantedAuthorityDefaults(""); // Remove the ROLE_ prefix
-    }
-    */
+     * @Bean
+     * public GrantedAuthorityDefaults grantedAuthorityDefaults() {
+     * return new GrantedAuthorityDefaults(""); // Remove the ROLE_ prefix
+     * }
+     */
 }

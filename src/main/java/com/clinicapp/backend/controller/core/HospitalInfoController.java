@@ -18,7 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/hospital")
+@RequestMapping("${api.prefix}/hospital")
 public class HospitalInfoController {
     private final HospitalInfoService service;
 

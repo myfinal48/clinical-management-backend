@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/secretary/dashboard")
+@RequestMapping("${api.prefix}/secretary/dashboard")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('SECRETARY')") // Ensure only SECRETARY can access
 public class SecretaryDashboardController {
