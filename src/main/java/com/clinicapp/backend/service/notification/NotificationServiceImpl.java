@@ -13,6 +13,7 @@ import com.clinicapp.backend.repository.notification.NotificationRepository;
 import com.clinicapp.backend.repository.notification.UserNotificationRepository;
 import com.clinicapp.backend.repository.security.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
@@ -123,12 +125,16 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private void handleChannelDelivery(Notification notification, NotificationChannel channel) {
-        notification.getUserNotifications().forEach(un ->
+        notification.getUserNotifications().forEach(un -> {
+            try {
                 messagingTemplate.convertAndSend(
                         "/topic/notifications/" + un.getUser().getId(),
                         NotificationMapper.toDto(notification)
-                )
-        );
+                );
+            } catch (Exception e) {
+                log.error("WebSocket error for user {}", un.getUser().getId(), e);
+            }
+        });
     }
 
     @Override
