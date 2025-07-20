@@ -15,6 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.clinicapp.backend.service.notification.NotificationService;
+import com.clinicapp.backend.dto.notification.NotificationRequestDTO;
+import com.clinicapp.backend.model.notification.NotificationType;
+import com.clinicapp.backend.model.notification.NotificationChannel;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +27,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final InvoiceRepository invoiceRepository;
     private final PatientRepository patientRepository;
     private final InvoiceMapper invoiceMapper;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -29,7 +35,9 @@ public class InvoiceServiceImpl implements InvoiceService {
         Patient patient = patientRepository.findById(dto.getPatientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + dto.getPatientId()));
         Invoice invoice = invoiceMapper.toEntity(dto, patient);
-        return invoiceMapper.toResponseDTO(invoiceRepository.save(invoice));
+        InvoiceResponseDTO response = invoiceMapper.toResponseDTO(invoiceRepository.save(invoice));
+        // Suppression de l'envoi de notification au patient
+        return response;
     }
 
     @Override
