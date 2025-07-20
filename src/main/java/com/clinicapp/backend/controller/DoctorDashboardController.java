@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/doctor/dashboard")
+@RequestMapping("${api.prefix}/doctor/dashboard")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('DOCTOR')") // Ensure only DOCTOR can access
 public class DoctorDashboardController {

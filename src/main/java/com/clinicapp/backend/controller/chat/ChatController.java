@@ -1,124 +1,99 @@
 package com.clinicapp.backend.controller.chat;
 
+import com.clinicapp.backend.mapper.chat.ChatMessageDTO;
 import com.clinicapp.backend.model.chat.ChatMessage;
+import com.clinicapp.backend.model.security.User;
+import com.clinicapp.backend.service.chat.ChatMessageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.socket.messaging.SessionConnectedEvent;
 
-import java.security.Principal;
-import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/chat")
+@Slf4j
 public class ChatController {
 
+    private final ChatMessageService chatMessageService;
     private final SimpMessagingTemplate messagingTemplate;
 
     /**
-     * Handles messages sent to /app/chat.public
-     * Broadcasts the message to all subscribers of /topic/public
+     * Handle WebSocket connection established
      */
-    @MessageMapping("/chat.public")
-    @SendTo("/topic/public")
-    public ChatMessage handlePublicMessage(
-            @Payload ChatMessage chatMessage,
-            SimpMessageHeaderAccessor headerAccessor,
-            Principal principal
-    ) {
-        // Set the sender if not already set (use the principal's name)
-        if (chatMessage.getSender() == null) {
-            chatMessage.setSender(principal.getName());
-        }
-        
-        // Set timestamp if not already set
-        if (chatMessage.getTimestamp() == null) {
-            chatMessage.setTimestamp(Instant.now());
-        }
-
-        return chatMessage;
+    @EventListener
+    public void handleWebSocketConnectListener(SessionConnectedEvent event) {
+        log.info("New WebSocket connection established");
     }
 
     /**
-     * Handles messages sent to /app/chat.private
-     * Sends the message to the specific user's private queue
+     * Handle private message sent via WebSocket
      */
     @MessageMapping("/chat.private")
-    public void handlePrivateMessage(
-            @Payload ChatMessage chatMessage,
-            Principal principal
-    ) {
-        // Set the sender if not already set (use the principal's name)
-        if (chatMessage.getSender() == null) {
-            chatMessage.setSender(principal.getName());
+    public void handlePrivateMessage(@Payload ChatMessage message, Authentication authentication) {
+        User currentUser = (User) authentication.getPrincipal();
+        
+        // Security check - ensure sender ID matches authenticated user
+        if (!currentUser.getId().equals(message.getSenderId())) {
+            log.warn("User {} attempted to send message as {}", currentUser.getId(), message.getSenderId());
+            return;
         }
-
-        // Set timestamp if not already set
-        if (chatMessage.getTimestamp() == null) {
-            chatMessage.setTimestamp(Instant.now());
+        
+        // Set sender name if not provided
+        if (message.getSenderName() == null) {
+            message.setSenderName(currentUser.getUsername());
         }
-
-        // Validate that recipient is specified for private messages
-        if (chatMessage.getRecipient() == null || chatMessage.getRecipient().trim().isEmpty()) {
-            throw new IllegalArgumentException("Recipient is required for private messages");
-        }
-
-        // Send it to the recipient's private queue
+        
+        // Save message to database
+        ChatMessageDTO savedMessage = chatMessageService.saveMessage(message);
+        
+        // Send to recipient's private queue
         messagingTemplate.convertAndSendToUser(
-                chatMessage.getRecipient(),
-                "/queue/private",
-                chatMessage
+            message.getRecipientId().toString(),
+            "/queue/messages",
+            savedMessage
         );
-
-        // Also send a copy to the sender's queue (so they can see their sent messages)
+        
+        // Send confirmation to sender
         messagingTemplate.convertAndSendToUser(
-                principal.getName(),
-                "/queue/private",
-                chatMessage
+            message.getSenderId().toString(),
+            "/queue/messages",
+            savedMessage
         );
     }
 
     /**
-     * Handles user join events
+     * Handle user joining chat
      */
     @MessageMapping("/chat.join")
-    @SendTo("/topic/public")
-    public ChatMessage handleUserJoin(
-            @Payload ChatMessage chatMessage,
-            SimpMessageHeaderAccessor headerAccessor,
-            Principal principal
-    ) {
-        // Add username to the web socket session
-        headerAccessor.getSessionAttributes().put("username", principal.getName());
-
-        return ChatMessage.builder()
-                .type(ChatMessage.MessageType.JOIN)
-                .sender(principal.getName())
-                .content(principal.getName() + " joined the chat")
-                .timestamp(Instant.now())
-                .build();
+    public void addUser(SimpMessageHeaderAccessor headerAccessor, Authentication authentication) {
+        User currentUser = (User) authentication.getPrincipal();
+        
+        // Add user ID and username to WebSocket session
+        headerAccessor.getSessionAttributes().put("userId", currentUser.getId());
+        headerAccessor.getSessionAttributes().put("username", currentUser.getUsername());
+        log.info("User {} joined chat", currentUser.getUsername());
+        
+        // Notify other users that this user is online
+        // This could be used to show online status in the UI
+        messagingTemplate.convertAndSend(
+            "/topic/status",
+            Map.of(
+                "userId", currentUser.getId(),
+                "status", "ONLINE",
+                "username", currentUser.getUsername(),
+                "timestamp", LocalDateTime.now()
+            )
+        );
     }
-
-    /**
-     * Handles user leave events
-     */
-    @MessageMapping("/chat.leave")
-    @SendTo("/topic/public")
-    public ChatMessage handleUserLeave(
-            @Payload ChatMessage chatMessage,
-            SimpMessageHeaderAccessor headerAccessor,
-            Principal principal
-    ) {
-        return ChatMessage.builder()
-                .type(ChatMessage.MessageType.LEAVE)
-                .sender(principal.getName())
-                .content(principal.getName() + " left the chat")
-                .timestamp(Instant.now())
-                .build();
-    }
+    
+    // WebSocket endpoints only - REST endpoints are in ChatRestController
 }
