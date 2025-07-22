@@ -2,6 +2,7 @@ package com.clinicapp.backend.service.core;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,10 @@ import com.clinicapp.backend.model.security.User;
 import com.clinicapp.backend.repository.core.PatientRepository;
 import com.clinicapp.backend.repository.core.PrescriptionRepository;
 import com.clinicapp.backend.repository.security.UserRepository;
+import com.clinicapp.backend.service.notification.NotificationService;
+import com.clinicapp.backend.dto.notification.NotificationRequestDTO;
+import com.clinicapp.backend.model.notification.NotificationType;
+import com.clinicapp.backend.model.notification.NotificationChannel;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,6 +33,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     private final PrescriptionRepository prescriptionRepo;
     private final PatientRepository patientRepository;
     private final UserRepository medecinRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -99,8 +105,19 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         prescription.setCreatedAt(LocalDateTime.now());
         prescription.setPatient(patient);
         prescription.setMedecin(medecin);
-
-        return prescriptionRepo.save(prescription);
+        Prescription saved = prescriptionRepo.save(prescription);
+        // Envoi notification au médecin uniquement
+        notificationService.sendNotification(
+            NotificationRequestDTO.builder()
+                .type(NotificationType.NEW_PRESCRIPTION)
+                .channel(NotificationChannel.IN_APP)
+                .subject("Nouvelle prescription")
+                .senderId(dto.getMedecinId())
+                .content("Une nouvelle prescription a été créée.")
+                .userIds(Set.of(dto.getMedecinId()))
+                .build()
+        );
+        return saved;
     }
 
     @Override
