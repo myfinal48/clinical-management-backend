@@ -7,12 +7,14 @@ import jakarta.validation.constraints.AssertTrue;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Builder;
 
 import java.util.Set;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class NotificationRequestDTO {
     private NotificationType type;
 

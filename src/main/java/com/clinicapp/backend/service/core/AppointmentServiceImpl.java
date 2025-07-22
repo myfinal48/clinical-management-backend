@@ -20,12 +20,18 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
+import com.clinicapp.backend.service.notification.NotificationService;
+import com.clinicapp.backend.dto.notification.NotificationRequestDTO;
+import com.clinicapp.backend.model.notification.NotificationType;
+import com.clinicapp.backend.model.notification.NotificationChannel;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class AppointmentServiceImpl implements AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
+    private final NotificationService notificationService;
 
     private static final long CANCELLATION_DEADLINE_HOURS = 24;
     private static final long MIN_BOOKING_HOURS = 2;
@@ -68,7 +74,19 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         Patient patient = patientRepository.findById(dto.getPatientId()).orElseThrow();
         appointment.setPatient(patient);
-        return toResponseDTO(appointmentRepository.save(appointment));
+        AppointmentResponseDTO response = toResponseDTO(appointmentRepository.save(appointment));
+        // Envoi notification au médecin uniquement
+        notificationService.sendNotification(
+            NotificationRequestDTO.builder()
+                .type(NotificationType.NEW_APPOINTMENT)
+                .channel(NotificationChannel.IN_APP)
+                .subject("Nouveau rendez-vous")
+                .senderId(dto.getPatientId())
+                .content("Un nouveau rendez-vous a été créé.")
+                .userIds(Set.of(Long.valueOf(dto.getDoctorId())))
+                .build()
+        );
+        return response;
     }
 
     @Override

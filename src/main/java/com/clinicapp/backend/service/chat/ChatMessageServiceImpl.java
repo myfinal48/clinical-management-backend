@@ -6,6 +6,10 @@ import com.clinicapp.backend.mapper.chat.ChatMessageDTO;
 import com.clinicapp.backend.model.security.User;
 import com.clinicapp.backend.repository.chat.ChatMessageRepository;
 import com.clinicapp.backend.repository.security.UserRepository;
+import com.clinicapp.backend.service.notification.NotificationService;
+import com.clinicapp.backend.dto.notification.NotificationRequestDTO;
+import com.clinicapp.backend.model.notification.NotificationType;
+import com.clinicapp.backend.model.notification.NotificationChannel;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @RequiredArgsConstructor
 @Service
@@ -24,6 +29,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         private final ChatMessageRepository chatMessageRepository;
         private final UserRepository userRepository;
         private final SimpMessagingTemplate messagingTemplate;
+        private final NotificationService notificationService;
 
         @Override
         @Transactional
@@ -49,6 +55,18 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                                         .build();
 
                         ChatMessageEntity savedEntity = chatMessageRepository.save(messageEntity);
+
+                        // Envoi notification au destinataire
+                        notificationService.sendNotification(
+                                NotificationRequestDTO.builder()
+                                        .type(NotificationType.NEW_CHAT_MESSAGE)
+                                        .channel(NotificationChannel.IN_APP)
+                                        .subject("Nouveau message reçu")
+                                        .senderId(message.getSenderId())
+                                        .content("Vous avez reçu un nouveau message.")
+                                        .userIds(Set.of(message.getRecipientId()))
+                                        .build()
+                        );
 
                         // 5. Return DTO
                         return ChatMessageDTO.fromEntity(savedEntity);
