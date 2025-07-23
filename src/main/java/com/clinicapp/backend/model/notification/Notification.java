@@ -18,7 +18,6 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "notification", indexes = {
-        @Index(name = "idx_notification_user_status", columnList = "user_id, status"),
         @Index(name = "idx_notification_created_at", columnList = "createdAt")
 })
 @NoArgsConstructor
@@ -64,10 +63,6 @@ public class Notification {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
-
-    @Column(name = "\"read\"", nullable = false)
-    @Deprecated
-    private boolean read;
 
     private LocalDateTime readAt;
 }
