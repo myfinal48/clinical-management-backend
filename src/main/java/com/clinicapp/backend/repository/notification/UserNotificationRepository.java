@@ -16,4 +16,10 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
             @Param("notificationIds") List<Long> notificationIds,
             @Param("userId") Long userId
     );
+    
+    @Query("SELECT COUNT(un) FROM UserNotification un WHERE un.user.id = :userId AND un.read = :read")
+    Long countByUserIdAndRead(@Param("userId") Long userId, @Param("read") boolean read);
+    
+    @Query("SELECT COUNT(un) FROM UserNotification un WHERE un.user.id = :userId AND un.read = :read AND un.notification.status != 'ARCHIVED'")
+    Long countByUserIdAndReadAndNotArchived(@Param("userId") Long userId, @Param("read") boolean read);
 }

@@ -18,4 +18,5 @@ public interface NotificationService {
     void archiveNotification(Long notificationId, Long userId);
     List<NotificationDTO> getUserNotifications(Long userId, boolean unreadOnly);
     List<NotificationDTO> getNotificationsByStatus(Long userId, NotificationStatus status);
+    Long getUnreadNotificationsCount(Long userId);
 }

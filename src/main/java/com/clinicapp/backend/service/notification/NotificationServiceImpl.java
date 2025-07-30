@@ -146,6 +146,8 @@ public class NotificationServiceImpl implements NotificationService {
         userNotifications.forEach(un -> {
             un.setRead(true);
             un.setReadAt(LocalDateTime.now());
+            // Mettre à jour le statut de la notification principale
+            un.getNotification().setStatus(NotificationStatus.READ);
         });
 
         userNotificationRepository.saveAll(userNotifications);
@@ -180,16 +182,30 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void archiveNotification(Long notificationId, Long userId) {
-        notificationRepository.updateStatusForUser(notificationId, userId, NotificationStatus.ARCHIVED);
+        // Marquer la UserNotification comme lue et archiver la notification
+        List<UserNotification> userNotifications = userNotificationRepository
+                .findByNotificationIdInAndUserId(List.of(notificationId), userId);
+        
+        userNotifications.forEach(un -> {
+            un.setRead(true);
+            un.setReadAt(LocalDateTime.now());
+            un.getNotification().setStatus(NotificationStatus.ARCHIVED);
+        });
+        
+        userNotificationRepository.saveAll(userNotifications);
     }
 
     @Override
     public List<NotificationDTO> getUserNotifications(Long userId, boolean unreadOnly) {
         return userNotificationRepository.findByUserIdAndRead(userId, !unreadOnly)
                 .stream()
-                .map(UserNotification::getNotification)
-                .map(NotificationMapper::toDto)
+                .map(un -> NotificationMapper.toDto(un.getNotification(), un))
                 .collect(Collectors.toList());
+    }
+    
+    @Override
+    public Long getUnreadNotificationsCount(Long userId) {
+        return userNotificationRepository.countByUserIdAndReadAndNotArchived(userId, false);
     }
 
     private void updateRecipients(Notification notification, Set<User> newRecipients) {
