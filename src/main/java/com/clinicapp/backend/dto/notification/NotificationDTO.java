@@ -20,8 +20,11 @@ public class NotificationDTO {
     private NotificationChannel channel;
     private Long senderId;
     private LocalDateTime createdAt;
+    private boolean read;
+    private LocalDateTime readAt;
+    
     public boolean isRead() {
-        return status == NotificationStatus.READ;
+        return read;
     }
 
 

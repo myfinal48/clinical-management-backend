@@ -150,4 +150,14 @@ public class NotificationController {
                 )
         );
     }
+    
+    @Operation(
+            summary = "Get unread notifications count",
+            description = "Get the count of unread notifications for a specific user"
+    )
+    @ApiResponse(responseCode = "200", description = "Unread count retrieved successfully")
+    @GetMapping("/users/{userId}/unread-count")
+    public ResponseEntity<Long> getUnreadNotificationsCount(@PathVariable Long userId) {
+        return ResponseEntity.ok(notificationService.getUnreadNotificationsCount(userId));
+    }
 }

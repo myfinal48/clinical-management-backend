@@ -9,6 +9,10 @@ import java.util.stream.Collectors;
 public class NotificationMapper {
     private NotificationMapper() {}
     public static NotificationDTO toDto(Notification notification) {
+        return toDto(notification, null);
+    }
+    
+    public static NotificationDTO toDto(Notification notification, UserNotification userNotification) {
         NotificationDTO dto = new NotificationDTO();
         dto.setId(notification.getId());
         dto.setSubject(notification.getSubject());
@@ -19,6 +23,12 @@ public class NotificationMapper {
         dto.setCreatedAt(notification.getCreatedAt());
         if (notification.getSender() != null) {
             dto.setSenderId(notification.getSender().getId());
+        }
+
+        // Si on a une UserNotification spécifique, on utilise ses données
+        if (userNotification != null) {
+            dto.setRead(userNotification.isRead());
+            dto.setReadAt(userNotification.getReadAt());
         }
 
         // Correction pour les destinataires
