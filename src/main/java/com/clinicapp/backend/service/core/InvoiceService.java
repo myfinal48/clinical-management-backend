@@ -16,4 +16,9 @@ public interface InvoiceService {
     List<InvoiceResponseDTO> getPaidInvoices();
     List<InvoiceResponseDTO> getUnpaidInvoices();
     java.math.BigDecimal getTotalPaidAmount();
+    
+    /**
+     * Récupère l'entité Invoice complète par ID (pour la génération PDF)
+     */
+    com.clinicapp.backend.model.core.Invoice getInvoiceEntityById(Long id);
 } 

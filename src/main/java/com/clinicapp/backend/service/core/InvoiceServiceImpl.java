@@ -116,4 +116,11 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .map(Invoice::getAmount)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.clinicapp.backend.model.core.Invoice getInvoiceEntityById(Long id) {
+        return invoiceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with id: " + id));
+    }
 } 
