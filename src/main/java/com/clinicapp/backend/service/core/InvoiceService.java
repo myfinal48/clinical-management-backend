@@ -2,6 +2,8 @@ package com.clinicapp.backend.service.core;
 
 import com.clinicapp.backend.dto.core.InvoiceRequestDTO;
 import com.clinicapp.backend.dto.core.InvoiceResponseDTO;
+import com.clinicapp.backend.model.core.Invoice;
+import java.math.BigDecimal;
 
 import java.util.List;
 
@@ -15,10 +17,10 @@ public interface InvoiceService {
     InvoiceResponseDTO markAsPaid(Long id);
     List<InvoiceResponseDTO> getPaidInvoices();
     List<InvoiceResponseDTO> getUnpaidInvoices();
-    java.math.BigDecimal getTotalPaidAmount();
+    BigDecimal getTotalPaidAmount();
     
     /**
-     * Récupère l'entité Invoice complète par ID (pour la génération PDF)
+     * Retrieves the full Invoice entity by ID (used for PDF generation).
      */
-    com.clinicapp.backend.model.core.Invoice getInvoiceEntityById(Long id);
+    Invoice getInvoiceEntityById(Long id);
 } 

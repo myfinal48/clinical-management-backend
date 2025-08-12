@@ -72,7 +72,7 @@ public class PdfGenerator {
     }
 
     /**
-     * Génère un PDF de facture professionnel
+     * Generates a professional invoice PDF
      */
     public ByteArrayInputStream generateInvoice(Invoice invoice, HospitalInfo hospital) {
         Document document = new Document(PageSize.A4);
@@ -107,7 +107,7 @@ public class PdfGenerator {
 
         if (hospital != null && hospital.getLogoPath() != null) {
             try {
-                // Charger le logo depuis Minio
+                // Load logo from Minio
                 var logoStream = minioClient.getObject(
                     GetObjectArgs.builder()
                         .bucket(bucketName)
@@ -115,12 +115,12 @@ public class PdfGenerator {
                         .build()
                 );
                 
-                // Convertir le stream en bytes pour iText
+                // Convert stream to bytes for iText
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 logoStream.transferTo(baos);
                 byte[] logoBytes = baos.toByteArray();
                 
-                // Créer l'image à partir des bytes
+                // Create image from bytes
                 Image logo = Image.getInstance(logoBytes);
                 logo.scaleToFit(80, 80);
                 PdfPCell logoCell = new PdfPCell(logo, false);
@@ -128,10 +128,10 @@ public class PdfGenerator {
                 logoCell.setHorizontalAlignment(Element.ALIGN_LEFT);
                 headerTable.addCell(logoCell);
                 
-                // Fermer le stream
+                // Close stream
                 logoStream.close();
             } catch (Exception e) {
-                // Si le logo ne peut pas être chargé, ajouter une cellule vide
+                // If logo cannot be loaded, add empty cell
                 System.err.println("Erreur lors du chargement du logo depuis Minio: " + e.getMessage());
                 PdfPCell emptyCell = new PdfPCell();
                 emptyCell.setBorder(Rectangle.NO_BORDER);
@@ -181,7 +181,7 @@ public class PdfGenerator {
     }
 
     private void addPatientInfo(Document document, Prescription p) throws DocumentException {
-        if (p == null || p.getPatient() == null || p.getMedecin() == null) return;
+        if (p == null || p.getPatient() == null || p.getMedecin() != null) return;
         PdfPTable table = new PdfPTable(2);
         table.setWidthPercentage(100);
         table.setSpacingBefore(20f);
@@ -286,12 +286,12 @@ public class PdfGenerator {
         spacer.setSpacingAfter(20f);
         document.add(spacer);
         
-        // Titre principal
+        // Main title
         Paragraph title = new Paragraph("FACTURE", TITLE_FONT);
         title.setAlignment(Element.ALIGN_CENTER);
         document.add(title);
         
-        // Numéro de facture
+        // Invoice number
         Paragraph invoiceNumber = new Paragraph("N° " + invoice.getId(), HEADER_FONT);
         invoiceNumber.setAlignment(Element.ALIGN_CENTER);
         invoiceNumber.setSpacingAfter(30f);
@@ -304,14 +304,26 @@ public class PdfGenerator {
         infoTable.setSpacingBefore(20f);
         infoTable.setSpacingAfter(20f);
 
-        // Informations du patient
+        // Patient information
         addTableHeaderCell(infoTable, "INFORMATIONS PATIENT");
         addTableHeaderCell(infoTable, "INFORMATIONS FACTURE");
         
         // Patient
         if (invoice.getPatient() != null) {
-            addTableCell(infoTable, "Nom: " + invoice.getPatient().getFirstName() + " " + invoice.getPatient().getLastName());
-            addTableCell(infoTable, "Date d'émission: " + DATE_FORMATTER.format(invoice.getIssuedAt()));
+            String firstName = invoice.getPatient().getFirstName();
+            String lastName = invoice.getPatient().getLastName();
+            String fullName;
+            if ((firstName == null || firstName.trim().isEmpty()) && (lastName == null || lastName.trim().isEmpty())) {
+                fullName = "N/A";
+            } else {
+                String safeFirst = firstName != null ? firstName : "";
+                String safeLast = lastName != null ? lastName : "";
+                String space = (!safeFirst.isEmpty() && !safeLast.isEmpty()) ? " " : "";
+                fullName = safeFirst + space + safeLast;
+            }
+            addTableCell(infoTable, "Nom: " + fullName);
+            String issuedAtText = invoice.getIssuedAt() != null ? DATE_FORMATTER.format(invoice.getIssuedAt()) : "-";
+            addTableCell(infoTable, "Date d'émission: " + issuedAtText);
             
             if (invoice.getPatient().getAddress() != null) {
                 addTableCell(infoTable, "Adresse: " + invoice.getPatient().getAddress());
@@ -344,7 +356,7 @@ public class PdfGenerator {
             addTableHeaderCell(detailsTable, "Description");
             addTableHeaderCell(detailsTable, "Montant");
 
-            // Diviser la description en lignes si elle contient des retours à la ligne
+            // Split description into lines if it contains line breaks
             String[] lines = invoice.getDescription().split("\n");
             for (String line : lines) {
                 if (!line.trim().isEmpty()) {
@@ -364,7 +376,7 @@ public class PdfGenerator {
         summaryTable.setSpacingBefore(20f);
         summaryTable.setSpacingAfter(20f);
 
-        // Montant HT (pour l'instant, on considère que le montant est TTC)
+        // Amount including tax (for now, we consider the amount includes tax)
         addTableHeaderCell(summaryTable, "Montant TTC");
         addTableCell(summaryTable, String.format("%.2f €", invoice.getAmount()));
 
@@ -375,7 +387,7 @@ public class PdfGenerator {
         Paragraph footer = new Paragraph();
         footer.setSpacingBefore(40f);
         
-        // Conditions de paiement
+        // Payment terms
         Paragraph conditions = new Paragraph("Conditions de paiement:", HEADER_FONT);
         conditions.setSpacingAfter(10f);
         footer.add(conditions);

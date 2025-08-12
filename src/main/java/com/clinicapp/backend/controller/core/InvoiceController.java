@@ -92,12 +92,9 @@ public class InvoiceController {
     @GetMapping("/{id}/pdf")
     @PreAuthorize("hasAnyRole('SECRETARY')")
     public ResponseEntity<InputStreamResource> generateInvoicePdf(@PathVariable Long id) {
-        // Récupérer la facture
         InvoiceResponseDTO invoiceResponse = invoiceService.getInvoiceById(id);
         
-        // Convertir en entité pour le PDF (on a besoin de l'entité complète)
-        // Pour l'instant, on va utiliser le service pour récupérer l'entité
-        // TODO: Optimiser en ajoutant une méthode dans le service pour récupérer l'entité
+
         var invoice = invoiceService.getInvoiceEntityById(id);
         var hospital = hospitalInfoService.getInfo();
         
