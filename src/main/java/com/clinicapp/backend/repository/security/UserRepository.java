@@ -1,12 +1,12 @@
 package com.clinicapp.backend.repository.security;
 
-import com.clinicapp.backend.model.security.Role; // Import Role enum
+import com.clinicapp.backend.model.security.Role;
 import com.clinicapp.backend.model.security.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
-import java.util.List; // Import List
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -42,5 +42,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param roles A collection of roles to count.
      * @return The number of users matching the roles.
      */
-    long countByRoleIn(Collection<Role> roles); // Add countByRoleIn
+    long countByRoleIn(Collection<Role> roles);
 }
