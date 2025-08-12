@@ -57,10 +57,10 @@ public class PdfGenerator {
                 addSignature(document);
             }
             if (!hasContent) {
-                document.add(new Paragraph("Aucune donnée à afficher.", TITLE_FONT));
+                document.add(new Paragraph("No data to display.", TITLE_FONT));
             }
         } catch (DocumentException | IOException e) {
-            throw new PdfGenerationException("Erreur lors de la génération du PDF", e);
+            throw new PdfGenerationException("Error generating PDF", e);
         } finally {
             if (document.isOpen()) {
                 document.close();
@@ -76,7 +76,6 @@ public class PdfGenerator {
 
         if (hospital != null && hospital.getLogoPath() != null) {
             try {
-                // Charger le logo depuis Minio
                 var logoStream = minioClient.getObject(
                     GetObjectArgs.builder()
                         .bucket(bucketName)
@@ -84,12 +83,10 @@ public class PdfGenerator {
                         .build()
                 );
                 
-                // Convertir le stream en bytes pour iText
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 logoStream.transferTo(baos);
                 byte[] logoBytes = baos.toByteArray();
                 
-                // Créer l'image à partir des bytes
                 Image logo = Image.getInstance(logoBytes);
                 logo.scaleToFit(80, 80);
                 PdfPCell logoCell = new PdfPCell(logo, false);
@@ -97,11 +94,9 @@ public class PdfGenerator {
                 logoCell.setHorizontalAlignment(Element.ALIGN_LEFT);
                 headerTable.addCell(logoCell);
                 
-                // Fermer le stream
                 logoStream.close();
             } catch (Exception e) {
-                // Si le logo ne peut pas être chargé, ajouter une cellule vide
-                System.err.println("Erreur lors du chargement du logo depuis Minio: " + e.getMessage());
+                System.err.println("Error loading logo from Minio: " + e.getMessage());
                 PdfPCell emptyCell = new PdfPCell();
                 emptyCell.setBorder(Rectangle.NO_BORDER);
                 headerTable.addCell(emptyCell);
@@ -121,7 +116,7 @@ public class PdfGenerator {
         }
         
         if (hospitalInfo.length() == 0) {
-            hospitalInfo.append("Informations de l'hôpital non disponibles");
+            hospitalInfo.append("Hospital information not available");
         }
         
         String[] lines = hospitalInfo.toString().split("\n");
@@ -213,7 +208,7 @@ public class PdfGenerator {
                             writer.getDirectContent()
                     );
                 } catch (Exception e) {
-                    throw new PdfGenerationException("Erreur d'en-tête/pied de page", e);
+                    throw new PdfGenerationException("Error generating header/footer", e);
                 }
             }
         });
