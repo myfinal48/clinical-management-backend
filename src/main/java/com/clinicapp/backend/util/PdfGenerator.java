@@ -14,6 +14,7 @@ import com.itextpdf.text.pdf.*;
 import io.minio.MinioClient;
 import io.minio.GetObjectArgs;
 import org.springframework.beans.factory.annotation.Value;
+import com.clinicapp.backend.model.core.Invoice;
 
 @Component
 public class PdfGenerator {
@@ -70,13 +71,43 @@ public class PdfGenerator {
         return new ByteArrayInputStream(out.toByteArray());
     }
 
+    /**
+     * Generates a professional invoice PDF
+     */
+    public ByteArrayInputStream generateInvoice(Invoice invoice, HospitalInfo hospital) {
+        Document document = new Document(PageSize.A4);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        try {
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+            addInvoiceHeaderFooter(writer);
+
+            document.open();
+            addDynamicHeader(document, hospital);
+            addInvoiceTitle(document, invoice);
+            addInvoiceInfo(document, invoice);
+            addInvoiceDetails(document, invoice);
+            addInvoiceSummary(document, invoice);
+            addInvoiceFooter(document);
+
+        } catch (DocumentException | IOException e) {
+            throw new PdfGenerationException("Erreur lors de la génération de la facture PDF", e);
+        } finally {
+            if (document.isOpen()) {
+                document.close();
+            }
+        }
+
+        return new ByteArrayInputStream(out.toByteArray());
+    }
+
     private void addDynamicHeader(Document document, HospitalInfo hospital) throws DocumentException, IOException {
         PdfPTable headerTable = new PdfPTable(2);
         headerTable.setWidthPercentage(100);
 
         if (hospital != null && hospital.getLogoPath() != null) {
             try {
-                // Charger le logo depuis Minio
+                // Load logo from Minio
                 var logoStream = minioClient.getObject(
                     GetObjectArgs.builder()
                         .bucket(bucketName)
@@ -84,12 +115,12 @@ public class PdfGenerator {
                         .build()
                 );
                 
-                // Convertir le stream en bytes pour iText
+                // Convert stream to bytes for iText
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 logoStream.transferTo(baos);
                 byte[] logoBytes = baos.toByteArray();
                 
-                // Créer l'image à partir des bytes
+                // Create image from bytes
                 Image logo = Image.getInstance(logoBytes);
                 logo.scaleToFit(80, 80);
                 PdfPCell logoCell = new PdfPCell(logo, false);
@@ -97,10 +128,10 @@ public class PdfGenerator {
                 logoCell.setHorizontalAlignment(Element.ALIGN_LEFT);
                 headerTable.addCell(logoCell);
                 
-                // Fermer le stream
+                // Close stream
                 logoStream.close();
             } catch (Exception e) {
-                // Si le logo ne peut pas être chargé, ajouter une cellule vide
+                // If logo cannot be loaded, add empty cell
                 System.err.println("Erreur lors du chargement du logo depuis Minio: " + e.getMessage());
                 PdfPCell emptyCell = new PdfPCell();
                 emptyCell.setBorder(Rectangle.NO_BORDER);
@@ -150,7 +181,7 @@ public class PdfGenerator {
     }
 
     private void addPatientInfo(Document document, Prescription p) throws DocumentException {
-        if (p == null || p.getPatient() == null || p.getMedecin() == null) return;
+        if (p == null || p.getPatient() == null || p.getMedecin() != null) return;
         PdfPTable table = new PdfPTable(2);
         table.setWidthPercentage(100);
         table.setSpacingBefore(20f);
@@ -217,6 +248,165 @@ public class PdfGenerator {
                 }
             }
         });
+    }
+
+    private void addInvoiceHeaderFooter(PdfWriter writer) {
+        writer.setPageEvent(new PdfPageEventHelper() {
+            public void onEndPage(PdfWriter writer, Document document) {
+                try {
+                    PdfPTable footer = new PdfPTable(1);
+                    footer.setTotalWidth(500);
+                    footer.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+                    footer.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+
+                    Paragraph p = new Paragraph(
+                            "Document comptable - " + (System.currentTimeMillis() % 2 == 0 ? "Original" : "Copie"),
+                            FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 8)
+                    );
+
+                    PdfPCell cell = new PdfPCell(p);
+                    cell.setBorder(Rectangle.NO_BORDER);
+                    footer.addCell(cell);
+
+                    footer.writeSelectedRows(
+                            0, -1,
+                            document.leftMargin(),
+                            document.bottomMargin() - 10,
+                            writer.getDirectContent()
+                    );
+                } catch (Exception e) {
+                    throw new PdfGenerationException("Erreur d'en-tête/pied de page de la facture", e);
+                }
+            }
+        });
+    }
+
+    private void addInvoiceTitle(Document document, Invoice invoice) throws DocumentException {
+        Paragraph spacer = new Paragraph();
+        spacer.setSpacingAfter(20f);
+        document.add(spacer);
+        
+        // Main title
+        Paragraph title = new Paragraph("FACTURE", TITLE_FONT);
+        title.setAlignment(Element.ALIGN_CENTER);
+        document.add(title);
+        
+        // Invoice number
+        Paragraph invoiceNumber = new Paragraph("N° " + invoice.getId(), HEADER_FONT);
+        invoiceNumber.setAlignment(Element.ALIGN_CENTER);
+        invoiceNumber.setSpacingAfter(30f);
+        document.add(invoiceNumber);
+    }
+
+    private void addInvoiceInfo(Document document, Invoice invoice) throws DocumentException {
+        PdfPTable infoTable = new PdfPTable(2);
+        infoTable.setWidthPercentage(100);
+        infoTable.setSpacingBefore(20f);
+        infoTable.setSpacingAfter(20f);
+
+        // Patient information
+        addTableHeaderCell(infoTable, "INFORMATIONS PATIENT");
+        addTableHeaderCell(infoTable, "INFORMATIONS FACTURE");
+        
+        // Patient
+        if (invoice.getPatient() != null) {
+            String firstName = invoice.getPatient().getFirstName();
+            String lastName = invoice.getPatient().getLastName();
+            String fullName;
+            if ((firstName == null || firstName.trim().isEmpty()) && (lastName == null || lastName.trim().isEmpty())) {
+                fullName = "N/A";
+            } else {
+                String safeFirst = firstName != null ? firstName : "";
+                String safeLast = lastName != null ? lastName : "";
+                String space = (!safeFirst.isEmpty() && !safeLast.isEmpty()) ? " " : "";
+                fullName = safeFirst + space + safeLast;
+            }
+            addTableCell(infoTable, "Nom: " + fullName);
+            String issuedAtText = invoice.getIssuedAt() != null ? DATE_FORMATTER.format(invoice.getIssuedAt()) : "-";
+            addTableCell(infoTable, "Date d'émission: " + issuedAtText);
+            
+            if (invoice.getPatient().getAddress() != null) {
+                addTableCell(infoTable, "Adresse: " + invoice.getPatient().getAddress());
+            }
+            if (invoice.getPatient().getPhoneNumber() != null) {
+                addTableCell(infoTable, "Téléphone: " + invoice.getPatient().getPhoneNumber());
+            }
+            if (invoice.getPatient().getEmail() != null) {
+                addTableCell(infoTable, "Email: " + invoice.getPatient().getEmail());
+            }
+            
+            addTableCell(infoTable, "Statut: " + (invoice.isPaid() ? "PAYÉE" : "EN ATTENTE"));
+            if (invoice.isPaid() && invoice.getDatePaid() != null) {
+                addTableCell(infoTable, "Date de paiement: " + DATE_FORMATTER.format(invoice.getDatePaid()));
+            }
+        }
+
+        document.add(infoTable);
+    }
+
+    private void addInvoiceDetails(Document document, Invoice invoice) throws DocumentException {
+        if (invoice.getDescription() != null && !invoice.getDescription().trim().isEmpty()) {
+            addSectionTitle(document, "DÉTAIL DES SERVICES");
+            
+            PdfPTable detailsTable = new PdfPTable(2);
+            detailsTable.setWidthPercentage(100);
+            detailsTable.setSpacingBefore(10f);
+            detailsTable.setSpacingAfter(20f);
+
+            addTableHeaderCell(detailsTable, "Description");
+            addTableHeaderCell(detailsTable, "Montant");
+
+            // Split description into lines if it contains line breaks
+            String[] lines = invoice.getDescription().split("\n");
+            for (String line : lines) {
+                if (!line.trim().isEmpty()) {
+                    addTableCell(detailsTable, line.trim());
+                    addTableCell(detailsTable, "");
+                }
+            }
+
+            document.add(detailsTable);
+        }
+    }
+
+    private void addInvoiceSummary(Document document, Invoice invoice) throws DocumentException {
+        PdfPTable summaryTable = new PdfPTable(2);
+        summaryTable.setWidthPercentage(60);
+        summaryTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        summaryTable.setSpacingBefore(20f);
+        summaryTable.setSpacingAfter(20f);
+
+        // Amount including tax (for now, we consider the amount includes tax)
+        addTableHeaderCell(summaryTable, "Montant TTC");
+        addTableCell(summaryTable, String.format("%.2f €", invoice.getAmount()));
+
+        document.add(summaryTable);
+    }
+
+    private void addInvoiceFooter(Document document) throws DocumentException {
+        Paragraph footer = new Paragraph();
+        footer.setSpacingBefore(40f);
+        
+        // Payment terms
+        Paragraph conditions = new Paragraph("Conditions de paiement:", HEADER_FONT);
+        conditions.setSpacingAfter(10f);
+        footer.add(conditions);
+        
+        Paragraph conditionsText = new Paragraph(
+            "• Paiement à réception de facture\n" +
+            "• Délai de paiement : 30 jours\n" +
+            "• En cas de retard de paiement, des pénalités pourront être appliquées\n" +
+            "• Pour toute question, contactez notre service comptabilité", 
+            BODY_FONT
+        );
+        footer.add(conditionsText);
+        
+        // Signature
+        Paragraph signature = new Paragraph("\n\nSignature et cachet de l'établissement :", HEADER_FONT);
+        signature.setAlignment(Element.ALIGN_RIGHT);
+        footer.add(signature);
+        
+        document.add(footer);
     }
 
     private void addTableHeaderCell(PdfPTable table, String text) {

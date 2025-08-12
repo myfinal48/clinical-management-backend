@@ -20,6 +20,7 @@ import com.clinicapp.backend.dto.notification.NotificationRequestDTO;
 import com.clinicapp.backend.model.notification.NotificationType;
 import com.clinicapp.backend.model.notification.NotificationChannel;
 import java.util.Set;
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -110,10 +111,17 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional(readOnly = true)
-    public java.math.BigDecimal getTotalPaidAmount() {
+    public BigDecimal getTotalPaidAmount() {
         return invoiceRepository.findAll().stream()
                 .filter(Invoice::isPaid)
                 .map(Invoice::getAmount)
-                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Invoice getInvoiceEntityById(Long id) {
+        return invoiceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with id: " + id));
     }
 } 

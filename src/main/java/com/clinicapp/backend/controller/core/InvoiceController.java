@@ -3,12 +3,18 @@ package com.clinicapp.backend.controller.core;
 import com.clinicapp.backend.dto.core.InvoiceRequestDTO;
 import com.clinicapp.backend.dto.core.InvoiceResponseDTO;
 import com.clinicapp.backend.service.core.InvoiceService;
+import com.clinicapp.backend.service.core.HospitalInfoService;
+import com.clinicapp.backend.util.PdfGenerator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayInputStream;
 import java.util.List;
 
 @RestController
@@ -16,6 +22,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class InvoiceController {
     private final InvoiceService invoiceService;
+    private final PdfGenerator pdfGenerator;
+    private final HospitalInfoService hospitalInfoService;
 
     @PostMapping
     @PreAuthorize("hasRole('SECRETARY')")
@@ -76,5 +84,29 @@ public class InvoiceController {
     @GetMapping("/total-paid")
     public ResponseEntity<java.math.BigDecimal> getTotalPaidAmount() {
         return ResponseEntity.ok(invoiceService.getTotalPaidAmount());
+    }
+
+    /**
+     * Génère un PDF de la facture pour impression/remise au patient
+     */
+    @GetMapping("/{id}/pdf")
+    @PreAuthorize("hasAnyRole('SECRETARY')")
+    public ResponseEntity<InputStreamResource> generateInvoicePdf(@PathVariable Long id) {
+        InvoiceResponseDTO invoiceResponse = invoiceService.getInvoiceById(id);
+        
+
+        var invoice = invoiceService.getInvoiceEntityById(id);
+        var hospital = hospitalInfoService.getInfo();
+        
+        ByteArrayInputStream pdf = pdfGenerator.generateInvoice(invoice, hospital);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=facture_" + id + ".pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(new InputStreamResource(pdf));
     }
 } 
