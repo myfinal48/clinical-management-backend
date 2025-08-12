@@ -19,7 +19,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j // Optional: for logging
+@Slf4j
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     private final JwtService jwtService;
@@ -29,11 +29,9 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        // Check if it's a CONNECT command with headers
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
-            // Extract Authorization header (Spring automatically maps 'Authorization' to nativeHeaders)
             List<String> authorization = accessor.getNativeHeader("Authorization");
-            log.debug("Authorization header: {}", authorization); // Log header
+            log.debug("Authorization header: {}", authorization);
 
             String authToken = null;
             if (authorization != null && !authorization.isEmpty()) {
@@ -45,15 +43,12 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
             if (authToken != null) {
                 try {
-                    String userEmail = jwtService.extractUsername(authToken); // Extracts email (subject)
+                    String userEmail = jwtService.extractUsername(authToken);
                     if (userEmail != null) {
-                        UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail); // Load by email
+                        UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
                         if (jwtService.isTokenValid(authToken, userDetails)) {
-                            // Create authentication token
                             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                                     userDetails, null, userDetails.getAuthorities());
-                            // Set the user in the STOMP session headers
-                            // This makes it available via headerAccessor.getUser() later
                             accessor.setUser(authentication);
                             log.debug("Authenticated WebSocket user: {}", userEmail);
                         } else {
@@ -62,15 +57,11 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                     }
                 } catch (Exception e) {
                     log.error("Error processing JWT token in WebSocket connect header: {}", e.getMessage());
-                    // Optionally deny connection explicitly? For now, let it proceed unauthenticated.
                 }
             } else {
                 log.warn("No Authorization Bearer token found in WebSocket connect header.");
             }
         }
-        // For other commands (SUBSCRIBE, SEND, etc.), the established security context should be used.
-        // If accessor.getUser() is set, Spring uses it. If not, it might check SecurityContextHolder.
-
         return message;
     }
 }
