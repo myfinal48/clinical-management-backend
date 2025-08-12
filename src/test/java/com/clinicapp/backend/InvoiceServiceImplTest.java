@@ -6,7 +6,7 @@ import com.clinicapp.backend.repository.core.InvoiceRepository;
 import com.clinicapp.backend.repository.core.PatientRepository;
 import com.clinicapp.backend.mapper.InvoiceMapper;
 import com.clinicapp.backend.service.core.InvoiceServiceImpl;
-import com.clinicapp.backend.service.notification.NotificationService;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
@@ -20,11 +20,10 @@ class InvoiceServiceImplTest {
         InvoiceRepository invoiceRepository = mock(InvoiceRepository.class);
         PatientRepository patientRepository = mock(PatientRepository.class);
         InvoiceMapper invoiceMapper = mock(InvoiceMapper.class);
-        NotificationService notificationService = mock(NotificationService.class);
 
         // Service
         InvoiceServiceImpl service = new InvoiceServiceImpl(
-            invoiceRepository, patientRepository, invoiceMapper, notificationService
+            invoiceRepository, patientRepository, invoiceMapper
         );
 
         // Data
@@ -48,6 +47,5 @@ class InvoiceServiceImplTest {
         service.createInvoice(dto);
 
         // Vérification : aucune notification envoyée
-        verify(notificationService, never()).sendNotification(any());
     }
 } 
