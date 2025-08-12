@@ -1,6 +1,6 @@
 package com.clinicapp.backend.dto.auth;
 
-import com.clinicapp.backend.model.security.User; // Import User model
+import com.clinicapp.backend.model.security.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,8 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AuthResponse {
 
-    private String token; // The JWT token
-    private User user; // Add the user details field
-    // Optionally, you could include the refresh token here as well
-    // private String refreshToken;
+    private String token;
+    private User user;
 }

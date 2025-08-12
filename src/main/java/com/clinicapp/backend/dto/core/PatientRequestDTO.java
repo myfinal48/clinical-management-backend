@@ -37,9 +37,9 @@ public class PatientRequestDTO {
     private String phoneNumber;
 
     @Email(message = "Email should be valid")
-    private String email; // Optional
+    private String email;
 
-    private String medicalHistory; // Keep as String for simplicity, could be structured
+    private String medicalHistory;
 
-    private String allergies; // Keep as String
+    private String allergies;
 } 

@@ -13,7 +13,7 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 public class AppointmentRequestDTO {
     @NotNull
-    @Future(message = "La date du rendez-vous doit être dans le futur.")
+    @Future(message = "The appointment date must be in the future.")
     private OffsetDateTime dateTime;
 
     @NotBlank

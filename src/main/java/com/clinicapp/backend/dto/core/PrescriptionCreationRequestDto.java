@@ -13,16 +13,15 @@ import lombok.Setter;
 @Getter
 @Setter
 public class PrescriptionCreationRequestDto {
-    //informations envoyées par le frontend
-    @NotBlank(message = "Le diagnostic est obligatoire")
+    @NotBlank(message = "The diagnosis is required")
     private String diagnostic;
 
-    @NotBlank(message = "Les recommandations sont obligatoires")
+    @NotBlank(message = "The recommendations are required")
     private String recommandations;
 
-    @NotNull(message = "L'ID du patient est obligatoire")
+    @NotNull(message = "The patient ID is required")
     private Long patientId;
 
-    @NotNull(message = "L'ID du médecin est obligatoire")
+    @NotNull(message = "The doctor ID is required")
     private Long medecinId;
 }
