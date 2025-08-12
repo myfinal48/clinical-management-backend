@@ -28,7 +28,6 @@ public class ChatMessageDTO {
     private String type;
     private String reactions;
 
-    // From Entity
     public static ChatMessageDTO fromEntity(ChatMessageEntity entity) {
         if (entity == null) return null;
         
@@ -51,7 +50,6 @@ public class ChatMessageDTO {
 
 
 
-    // For WebSocket messages
     public static ChatMessageDTO fromWebSocket(ChatMessage message) {
         return ChatMessageDTO.builder()
                 .content(message.getContent())
