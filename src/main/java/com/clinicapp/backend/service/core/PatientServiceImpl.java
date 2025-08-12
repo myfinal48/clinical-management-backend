@@ -10,12 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.clinicapp.backend.service.notification.NotificationService;
-import com.clinicapp.backend.dto.notification.NotificationRequestDTO;
-import com.clinicapp.backend.model.notification.NotificationType;
-import com.clinicapp.backend.model.notification.NotificationChannel;
-import java.util.Set;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,9 +18,6 @@ import java.util.stream.Collectors;
 public class PatientServiceImpl implements PatientService {
 
     private final PatientRepository patientRepository;
-    private final NotificationService notificationService;
-
-    // --- Mapping Logic ---
 
     private PatientResponseDTO mapToResponseDTO(Patient patient) {
         return PatientResponseDTO.builder()
@@ -69,8 +60,6 @@ public class PatientServiceImpl implements PatientService {
         patient.setAllergies(patientDTO.getAllergies());
     }
 
-    // --- CRUD Operations ---
-
     @Transactional(readOnly = true)
     public List<PatientResponseDTO> getAllPatients() {
         return patientRepository.findAll().stream()
@@ -96,7 +85,6 @@ public class PatientServiceImpl implements PatientService {
 
         Patient patient = mapToEntity(patientDTO);
         Patient savedPatient = patientRepository.save(patient);
-        // Suppression de l'envoi de notification au patient
         return mapToResponseDTO(savedPatient);
     }
 
@@ -117,7 +105,6 @@ public class PatientServiceImpl implements PatientService {
 
         updateEntityFromDTO(existingPatient, patientDTO);
         Patient updatedPatient = patientRepository.save(existingPatient);
-        // Suppression de l'envoi de notification au patient
         return mapToResponseDTO(updatedPatient);
     }
 

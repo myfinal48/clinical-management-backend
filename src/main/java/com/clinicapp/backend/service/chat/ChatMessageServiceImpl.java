@@ -35,7 +35,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         @Transactional
         public ChatMessageDTO saveMessage(ChatMessage message) {
                 try {
-                        // 1. Get sender and recipient users
                         User sender = userRepository.findById(message.getSenderId())
                                         .orElseThrow(() -> new EntityNotFoundException(
                                                         "Sender not found with ID: " + message.getSenderId()));
@@ -44,7 +43,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                                         .orElseThrow(() -> new EntityNotFoundException(
                                                         "Recipient not found with ID: " + message.getRecipientId()));
 
-                        // 2. Create and save message entity
                         ChatMessageEntity messageEntity = ChatMessageEntity.builder()
                                         .content(message.getContent())
                                         .sender(sender)
@@ -56,7 +54,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
                         ChatMessageEntity savedEntity = chatMessageRepository.save(messageEntity);
 
-                        // Envoi notification au destinataire
                         notificationService.sendNotification(
                                 NotificationRequestDTO.builder()
                                         .type(NotificationType.NEW_CHAT_MESSAGE)
@@ -68,7 +65,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                                         .build()
                         );
 
-                        // 5. Return DTO
                         return ChatMessageDTO.fromEntity(savedEntity);
 
                 } catch (Exception e) {
@@ -124,11 +120,9 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                                 .orElseThrow(() -> new EntityNotFoundException(
                                                 "Sender not found with ID: " + senderId));
 
-                // Get conversation between users
                 List<ChatMessageEntity> messages = chatMessageRepository.findConversationBetweenUsers(recipient,
                                 sender);
 
-                // Mark messages as read where recipient is the current user
                 messages.stream()
                                 .filter(msg -> msg.getRecipient().equals(recipient) && !msg.getIsRead())
                                 .forEach(msg -> {
@@ -155,19 +149,16 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                                 .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
 
                 try {
-                        // Get all messages for user
                         List<ChatMessageEntity> allMessages = chatMessageRepository.findAllMessagesForUser(user)
                                         .stream()
                                         .limit(20)
                                         .toList();
-
-                        // Convert to DTOs
                         return allMessages.stream()
                                         .map(ChatMessageDTO::fromEntity)
                                         .toList();
                 } catch (Exception e) {
                         log.error("Error getting conversation summaries", e);
-                        return List.of(); // Return empty list on error
+                        return List.of();
                 }
         }
 
@@ -177,7 +168,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 ChatMessageEntity message = chatMessageRepository.findById(messageId)
                                 .orElseThrow(() -> new EntityNotFoundException("Message not found with ID: " + messageId));
 
-                // Soft delete: mark as deleted for the current user only
                 if (message.getSender().getId().equals(userId)) {
                         message.setDeletedBySender(true);
                 } else if (message.getRecipient().getId().equals(userId)) {
@@ -197,7 +187,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
                 List<ChatMessageEntity> messages = chatMessageRepository.findMessagesForUser(user);
                 
-                // Soft delete: mark messages as deleted for this user only
                 messages.forEach(message -> {
                         if (message.getSender().getId().equals(userId)) {
                                 message.setDeletedBySender(true);
@@ -216,16 +205,12 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 ChatMessageEntity message = chatMessageRepository.findById(messageId)
                                 .orElseThrow(() -> new EntityNotFoundException("Message not found with ID: " + messageId));
 
-                // Check if user can react (sender or recipient)
                 if (!message.getSender().getId().equals(userId) && !message.getRecipient().getId().equals(userId)) {
                         throw new SecurityException("User not authorized to react to this message");
                 }
-
-                // Update reactions (simple implementation - just store the reaction)
                 message.setReactions(reaction);
                 chatMessageRepository.save(message);
 
-                // Send WebSocket update
                 ChatMessageDTO updatedMessage = ChatMessageDTO.fromEntity(message);
                 messagingTemplate.convertAndSendToUser(
                                 message.getSender().getId().toString(),

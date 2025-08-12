@@ -41,25 +41,25 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Transactional
     public AppointmentResponseDTO createAppointment(AppointmentRequestDTO dto) {
         if (OffsetDateTime.now().plusHours(MIN_BOOKING_HOURS).isAfter(dto.getDateTime())) {
-            throw new BusinessException("Le rendez-vous doit être réservé au moins 2 heures à l'avance.");
+            throw new BusinessException("The appointment must be reserved at least 2 hours in advance.");
         }
         DayOfWeek day = dto.getDateTime().getDayOfWeek();
         int hour = dto.getDateTime().getHour();
         if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY || hour < 8 || hour > 18) {
-            throw new BusinessException("Aucun rendez-vous n'est autorisé la nuit ou le week-end.");
+            throw new BusinessException("No appointments are allowed at night or on weekends.");
         }
         OffsetDateTime start = dto.getDateTime();
         OffsetDateTime end = start.plusMinutes(getDefaultDuration("GENERAL").toMinutes() + BUFFER_MINUTES);
         if (appointmentRepository.existsByDoctorAndDateTimeOverlap(dto.getDoctorId(), start.toLocalDateTime(), end.toLocalDateTime())) {
-            throw new BusinessException("Le médecin a déjà un rendez-vous à ce créneau.");
+            throw new BusinessException("The doctor already has an appointment at this time.");
         }
         if (!"EMERGENCY".equalsIgnoreCase(dto.getReason()) && appointmentRepository.existsByPatientAndDate(dto.getPatientId(), start.toLocalDate())) {
-            throw new BusinessException("Le patient a déjà un rendez-vous pour ce jour.");
+            throw new BusinessException("The patient already has an appointment for this day.");
         }
         if ("EMERGENCY".equalsIgnoreCase(dto.getReason())) {
             int emergencyHour = start.getHour();
             if (emergencyHour < 5 || emergencyHour >= 23) {
-                throw new BusinessException("Les urgences sont autorisées uniquement entre 5h00 et 23h00.");
+                throw new BusinessException("Emergency appointments are only allowed between 5:00 and 23:00.");
             }
         }
         Appointment appointment = new Appointment();
@@ -75,14 +75,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         Patient patient = patientRepository.findById(dto.getPatientId()).orElseThrow();
         appointment.setPatient(patient);
         AppointmentResponseDTO response = toResponseDTO(appointmentRepository.save(appointment));
-        // Envoi notification au médecin uniquement
         notificationService.sendNotification(
             NotificationRequestDTO.builder()
                 .type(NotificationType.NEW_APPOINTMENT)
                 .channel(NotificationChannel.IN_APP)
-                .subject("Nouveau rendez-vous")
+                .subject("New appointment")
                 .senderId(dto.getPatientId())
-                .content("Un nouveau rendez-vous a été créé.")
+                .content("A new appointment has been created.")
                 .userIds(Set.of(Long.valueOf(dto.getDoctorId())))
                 .build()
         );
@@ -162,7 +161,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         return dto;
     }
 
-    // Durée par défaut selon le type de consultation
     private Duration getDefaultDuration(String consultationType) {
         return switch (consultationType) {
             case "CONTROL" -> Duration.ofMinutes(15);
@@ -172,7 +170,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         };
     }
 
-    // Proposer des créneaux alternatifs en cas de conflit
     @Override
     public List<java.time.OffsetDateTime> findAlternativeSlots(String doctor, java.time.OffsetDateTime desiredTime) {
         java.time.Duration duration = getDefaultDuration("GENERAL");
@@ -224,4 +221,4 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointmentRepository.save(appointment);
         return toResponseDTO(appointment);
     }
-} 
+}

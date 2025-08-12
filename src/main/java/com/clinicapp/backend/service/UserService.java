@@ -24,5 +24,4 @@ public interface UserService {
 
     User findByUsername(String recipientName);
 
-    // Potentially add methods for password reset, enabling/disabling users etc.
 }
