@@ -76,7 +76,7 @@ public class PrescriptionController {
                 .toUri();
 
         return ResponseEntity.created(location)
-                .body(new ApiResponse("Prescription créée avec succès", responseDto));
+                .body(new ApiResponse("Prescription created successfully", responseDto));
     }
 
 
@@ -92,7 +92,7 @@ public class PrescriptionController {
         Prescription updated = prescriptionService.update(id, dto);
         PrescriptionResponseDto responseDto = convertToDto(updated);
 
-        return ResponseEntity.ok(new ApiResponse("Prescription mise à jour avec succès", responseDto));
+        return ResponseEntity.ok(new ApiResponse("Prescription updated successfully", responseDto));
     }
 
  
@@ -103,7 +103,7 @@ public class PrescriptionController {
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<ApiResponse> deletePrescription(@PathVariable Long id) {
         prescriptionService.delete(id);
-        return ResponseEntity.ok(new ApiResponse("Prescription supprimée avec succès", null));
+        return ResponseEntity.ok(new ApiResponse("Prescription deleted successfully", null));
     }
 
 
@@ -136,4 +136,3 @@ public class PrescriptionController {
         return PrescriptionMapper.toDto(prescription);
     }
 }
-

@@ -40,10 +40,8 @@ public class ChatRestController {
 
         User currentUser = (User) authentication.getPrincipal();
         
-        // Find recipient by username
         User recipient = userService.findByUsername(request.getRecipientName());
 
-        // Crée le message à partir des données validées
         ChatMessage message = ChatMessage.builder()
                 .content(request.getContent())
                 .senderId(currentUser.getId())
@@ -52,17 +50,14 @@ public class ChatRestController {
                 .type(ChatMessageEntity.MessageType.CHAT)
                 .build();
 
-        // Sauvegarde du message
         ChatMessageDTO savedMessage = chatMessageService.saveMessage(message);
 
-        // Envoi WebSocket au destinataire
         messagingTemplate.convertAndSendToUser(
                 recipient.getId().toString(),
                 "/queue/messages",
                 savedMessage
         );
 
-        // Confirmation à l'expéditeur
         messagingTemplate.convertAndSendToUser(
                 currentUser.getId().toString(),
                 "/queue/messages",
@@ -176,16 +171,14 @@ public class ChatRestController {
         return participantInfo;
     }
 
-    // Request DTO for sending messages
     public static class SendMessageRequest {
 
-        @NotBlank(message = "Le contenu du message est obligatoire")
+        @NotBlank(message = "Content is required")
         private String content;
 
-        @NotBlank(message = "Le nom du destinataire est obligatoire")
+        @NotBlank(message = "Recipient name is required")
         private String recipientName;
 
-        // Getters et Setters
         public String getContent() {
             return content;
         }

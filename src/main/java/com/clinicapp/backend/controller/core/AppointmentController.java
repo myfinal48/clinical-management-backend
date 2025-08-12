@@ -57,9 +57,9 @@ public class AppointmentController {
     public ResponseEntity<String> cancel(@PathVariable Long id, @RequestParam String initiatedBy) {
         boolean result = appointmentService.cancelAppointment(id, initiatedBy);
         if (result) {
-            return ResponseEntity.ok("Rendez-vous annulé avec succès.");
+            return ResponseEntity.ok("Appointment cancelled successfully.");
         } else {
-            return ResponseEntity.badRequest().body("Impossible d'annuler ce rendez-vous (délai dépassé ou non trouvé).");
+            return ResponseEntity.badRequest().body("Unable to cancel this appointment (timeout or not found).");
         }
     }
 
@@ -80,7 +80,7 @@ public class AppointmentController {
     @GetMapping("/alternatives")
     public List<OffsetDateTime> getAlternativeSlots(
         @RequestParam String doctor,
-        @RequestParam String dateTime // format ISO
+        @RequestParam String dateTime
     ) {
         return appointmentService.findAlternativeSlots(doctor, OffsetDateTime.parse(dateTime));
     }

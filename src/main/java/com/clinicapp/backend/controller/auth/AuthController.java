@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@RequestMapping("${api.prefix}/auth") // Base path for authentication endpoints
+@RequestMapping("${api.prefix}/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -23,27 +23,24 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(
-            @Valid @RequestBody RegisterRequest request // Validate the request body
+            @Valid @RequestBody RegisterRequest request
     ) {
         try {
             return ResponseEntity.ok(authService.register(request));
         } catch (IllegalArgumentException e) {
-            // Handle cases like username/email already exists
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         } catch (Exception e) {
-            // Catch other potential exceptions during registration
              throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Registration failed", e);
         }
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(
-            @Valid @RequestBody LoginRequest request // Validate the request body
+            @Valid @RequestBody LoginRequest request
     ) {
         try {
             return ResponseEntity.ok(authService.login(request));
         } catch (Exception e) {
-             // Handles AuthenticationException and others
              throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login failed: Invalid credentials", e);
         }
     }

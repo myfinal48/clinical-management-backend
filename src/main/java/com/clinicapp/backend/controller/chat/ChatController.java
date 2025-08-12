@@ -41,28 +41,23 @@ public class ChatController {
     public void handlePrivateMessage(@Payload ChatMessage message, Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();
         
-        // Security check - ensure sender ID matches authenticated user
         if (!currentUser.getId().equals(message.getSenderId())) {
             log.warn("User {} attempted to send message as {}", currentUser.getId(), message.getSenderId());
             return;
         }
         
-        // Set sender name if not provided
         if (message.getSenderName() == null) {
             message.setSenderName(currentUser.getUsername());
         }
         
-        // Save message to database
         ChatMessageDTO savedMessage = chatMessageService.saveMessage(message);
         
-        // Send to recipient's private queue
         messagingTemplate.convertAndSendToUser(
             message.getRecipientId().toString(),
             "/queue/messages",
             savedMessage
         );
         
-        // Send confirmation to sender
         messagingTemplate.convertAndSendToUser(
             message.getSenderId().toString(),
             "/queue/messages",
@@ -77,13 +72,10 @@ public class ChatController {
     public void addUser(SimpMessageHeaderAccessor headerAccessor, Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();
         
-        // Add user ID and username to WebSocket session
         headerAccessor.getSessionAttributes().put("userId", currentUser.getId());
         headerAccessor.getSessionAttributes().put("username", currentUser.getUsername());
         log.info("User {} joined chat", currentUser.getUsername());
         
-        // Notify other users that this user is online
-        // This could be used to show online status in the UI
         messagingTemplate.convertAndSend(
             "/topic/status",
             Map.of(
@@ -94,6 +86,4 @@ public class ChatController {
             )
         );
     }
-    
-    // WebSocket endpoints only - REST endpoints are in ChatRestController
 }
