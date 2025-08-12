@@ -3,6 +3,7 @@ package com.clinicapp.backend.service.security;
 import com.clinicapp.backend.dto.auth.AuthResponse;
 import com.clinicapp.backend.dto.auth.LoginRequest;
 import com.clinicapp.backend.dto.auth.RegisterRequest;
+import com.clinicapp.backend.exceptions.BadRequestException;
 import com.clinicapp.backend.model.security.User;
 import com.clinicapp.backend.repository.security.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,10 +34,10 @@ public class AuthService {
      */
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new IllegalArgumentException("Username already exists");
+            throw new BadRequestException("Username already exists");
         }
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email already exists");
+            throw new BadRequestException("Email already exists");
         }
 
         var user = User.builder()

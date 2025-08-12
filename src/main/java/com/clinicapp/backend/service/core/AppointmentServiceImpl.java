@@ -206,12 +206,12 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public List<AppointmentResponseDTO> listAppointments() {
-        throw new UnsupportedOperationException("Use the paginated version listAppointments(Pageable pageable)");
+        throw new BusinessException("This method is deprecated. Please use the paginated version.");
     }
 
     @Override
     public List<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room) {
-        throw new UnsupportedOperationException("Use the paginated version listAppointmentsFiltered(String, String, String, Pageable)");
+        throw new BusinessException("This method is deprecated. Please use the paginated version.");
     }
 
     @Override
