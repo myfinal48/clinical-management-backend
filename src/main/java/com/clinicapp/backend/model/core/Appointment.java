@@ -35,7 +35,7 @@ public class Appointment {
     private Status status = Status.SCHEDULED;
 
     @Column
-    private String cancellationInitiator; // PATIENT, CLINIC
+    private String cancellationInitiator;
 
     @Column
     private String cancellationReason;

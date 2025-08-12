@@ -55,7 +55,7 @@ public class ChatMessageEntity {
     private LocalDateTime readAt;
 
     @Column(name = "reactions")
-    private String reactions; // JSON string: {"👍":2,"❤️":1}
+    private String reactions;
 
     @Builder.Default
     @Column(name = "deleted_by_sender")
