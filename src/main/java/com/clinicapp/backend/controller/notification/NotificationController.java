@@ -20,7 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("${api.prefix}/notifications")
 @RequiredArgsConstructor
-@Tag(name = "Notification Management", description = "Endpoints for managing user notifications")
+@Tag(name = "notification-controller", description = "Endpoints for managing user notifications")
 public class NotificationController {
 
     private final NotificationService notificationService;
