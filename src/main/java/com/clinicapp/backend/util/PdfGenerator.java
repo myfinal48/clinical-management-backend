@@ -378,7 +378,7 @@ public class PdfGenerator {
 
         // Amount including tax (for now, we consider the amount includes tax)
         addTableHeaderCell(summaryTable, "Montant TTC");
-        addTableCell(summaryTable, String.format("%.2f €", invoice.getAmount()));
+        addTableCell(summaryTable, String.format("%.2f Fcfa", invoice.getAmount()));
 
         document.add(summaryTable);
     }
