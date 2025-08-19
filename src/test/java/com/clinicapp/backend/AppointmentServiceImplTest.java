@@ -18,17 +18,13 @@ import static org.mockito.Mockito.*;
 class AppointmentServiceImplTest {
     @Test
     void testNotificationSentToDoctorOnAppointmentCreation() {
-        // Mocks
         AppointmentRepository appointmentRepository = mock(AppointmentRepository.class);
         PatientRepository patientRepository = mock(PatientRepository.class);
         NotificationService notificationService = mock(NotificationService.class);
-
-        // Service
         AppointmentServiceImpl service = new AppointmentServiceImpl(
             appointmentRepository, patientRepository, notificationService
         );
 
-        // Data
         String doctorId = "1";
         Long patientId = 2L;
         AppointmentRequestDTO dto = new AppointmentRequestDTO();
@@ -39,13 +35,10 @@ class AppointmentServiceImplTest {
             .with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.MONDAY))
             .withHour(10).withMinute(0).withSecond(0).withNano(0);
         dto.setDateTime(dateTime);
-        // ... set other fields as needed
 
         Patient patient = new Patient();
         patient.setId(patientId);
         when(patientRepository.findById(patientId)).thenReturn(Optional.of(patient));
-
-        // Préparer un Appointment pour le retour du save
         com.clinicapp.backend.model.core.Appointment appointment = new com.clinicapp.backend.model.core.Appointment();
         appointment.setId(123L);
         appointment.setPatient(patient);
@@ -55,10 +48,8 @@ class AppointmentServiceImplTest {
         appointment.setStatus(com.clinicapp.backend.model.core.Appointment.Status.SCHEDULED);
         when(appointmentRepository.save(any(com.clinicapp.backend.model.core.Appointment.class))).thenReturn(appointment);
 
-        // Appel
         service.createAppointment(dto);
 
-        // Vérification
         ArgumentCaptor<NotificationRequestDTO> captor = ArgumentCaptor.forClass(NotificationRequestDTO.class);
         verify(notificationService).sendNotification(captor.capture());
         NotificationRequestDTO notif = captor.getValue();

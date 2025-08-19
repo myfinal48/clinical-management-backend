@@ -16,21 +16,17 @@ import static org.mockito.Mockito.*;
 class InvoiceServiceImplTest {
     @Test
     void testNoNotificationSentOnInvoiceCreation() {
-        // Mocks
         InvoiceRepository invoiceRepository = mock(InvoiceRepository.class);
         PatientRepository patientRepository = mock(PatientRepository.class);
         InvoiceMapper invoiceMapper = mock(InvoiceMapper.class);
 
-        // Service
         InvoiceServiceImpl service = new InvoiceServiceImpl(
             invoiceRepository, patientRepository, invoiceMapper
         );
 
-        // Data
         Long patientId = 2L;
         InvoiceRequestDTO dto = new InvoiceRequestDTO();
         dto.setPatientId(patientId);
-        // ... set other fields as needed
 
         Patient patient = new Patient();
         patient.setId(patientId);
@@ -43,9 +39,6 @@ class InvoiceServiceImplTest {
         when(invoiceMapper.toEntity(any(), any())).thenReturn(invoice);
         when(invoiceMapper.toResponseDTO(any())).thenReturn(mock(com.clinicapp.backend.dto.core.InvoiceResponseDTO.class));
 
-        // Appel
         service.createInvoice(dto);
-
-        // Vérification : aucune notification envoyée
     }
 } 
