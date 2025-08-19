@@ -1,6 +1,6 @@
 package com.clinicapp.backend.model.security;
 
-import com.fasterxml.jackson.annotation.JsonIgnore; // Import JsonIgnore
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -17,12 +17,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
-@Data // Lombok: Generates getters, setters, toString, equals, hashCode
-@Builder // Lombok: Builder pattern
-@NoArgsConstructor // Lombok: No-args constructor
-@AllArgsConstructor // Lombok: All-args constructor
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-@Table(name = "_user") // "user" is often a reserved keyword in SQL
+@Table(name = "_user")
 public class User implements UserDetails {
 
     @Id
@@ -35,7 +35,6 @@ public class User implements UserDetails {
     private String username;
 
     @NotBlank(message = "Password cannot be blank")
-    // Password length validation should ideally happen before encoding
     @Column(nullable = false)
     private String password;
 
@@ -51,17 +50,14 @@ public class User implements UserDetails {
     private String lastName;
 
     @NotNull(message = "Role cannot be null")
-    @Enumerated(EnumType.STRING) // Store enum names (ADMIN, DOCTOR, SECRETARY) in the DB
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
-    // --- UserDetails Implementation ---
-
     @Override
-    @JsonIgnore // Ignore this during JSON serialization
+    @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Return a list containing the user's role as a GrantedAuthority
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name())); // Prefix with ROLE_ for Spring Security convention
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     @Override
@@ -71,31 +67,30 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        // Spring Security uses username for authentication
         return username;
     }
 
     @Override
-    @JsonIgnore // Ignore this during JSON serialization
+    @JsonIgnore
     public boolean isAccountNonExpired() {
-        return true; // Or add logic for account expiration
+        return true;
     }
 
     @Override
-    @JsonIgnore // Ignore this during JSON serialization
+    @JsonIgnore
     public boolean isAccountNonLocked() {
-        return true; // Or add logic for account locking
+        return true;
     }
 
     @Override
-    @JsonIgnore // Ignore this during JSON serialization
+    @JsonIgnore
     public boolean isCredentialsNonExpired() {
-        return true; // Or add logic for password expiration
+        return true;
     }
 
     @Override
-    @JsonIgnore // Ignore this during JSON serialization
+    @JsonIgnore
     public boolean isEnabled() {
-        return true; // Or add logic for disabling accounts
+        return true;
     }
 }

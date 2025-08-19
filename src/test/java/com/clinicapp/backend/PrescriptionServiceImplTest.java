@@ -21,24 +21,20 @@ import static org.mockito.Mockito.*;
 class PrescriptionServiceImplTest {
     @Test
     void testNotificationSentToDoctorOnPrescriptionCreation() {
-        // Mocks
         PrescriptionRepository prescriptionRepository = mock(PrescriptionRepository.class);
         PatientRepository patientRepository = mock(PatientRepository.class);
         UserRepository userRepository = mock(UserRepository.class);
         NotificationService notificationService = mock(NotificationService.class);
 
-        // Service
         PrescriptionServiceImpl service = new PrescriptionServiceImpl(
             prescriptionRepository, patientRepository, userRepository, notificationService
         );
 
-        // Data
         Long medecinId = 1L;
         Long patientId = 2L;
         PrescriptionCreationRequestDto dto = new PrescriptionCreationRequestDto();
         dto.setMedecinId(medecinId);
         dto.setPatientId(patientId);
-        // ... set other fields as needed
 
         Patient patient = new Patient();
         patient.setId(patientId);
@@ -55,10 +51,8 @@ class PrescriptionServiceImplTest {
         prescription.setMedecin(medecin);
         when(prescriptionRepository.save(any(com.clinicapp.backend.model.core.Prescription.class))).thenReturn(prescription);
 
-        // Appel
         service.create(dto);
 
-        // Vérification
         ArgumentCaptor<NotificationRequestDTO> captor = ArgumentCaptor.forClass(NotificationRequestDTO.class);
         verify(notificationService).sendNotification(captor.capture());
         NotificationRequestDTO notif = captor.getValue();

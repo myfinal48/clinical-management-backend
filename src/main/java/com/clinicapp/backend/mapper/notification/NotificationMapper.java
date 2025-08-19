@@ -25,13 +25,10 @@ public class NotificationMapper {
             dto.setSenderId(notification.getSender().getId());
         }
 
-        // Si on a une UserNotification spécifique, on utilise ses données
         if (userNotification != null) {
             dto.setRead(userNotification.isRead());
             dto.setReadAt(userNotification.getReadAt());
         }
-
-        // Correction pour les destinataires
         dto.setRecipients(notification.getUserNotifications().stream()
                 .map(NotificationMapper::mapUserNotification)
                 .collect(Collectors.toSet()));

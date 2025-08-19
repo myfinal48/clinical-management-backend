@@ -18,6 +18,10 @@ import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+/**
+ * WebSocket controller for handling real-time chat functionalities.
+ * Manages private messages and user presence notifications.
+ */
 @Controller
 @RequiredArgsConstructor
 @Slf4j
@@ -27,7 +31,9 @@ public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
 
     /**
-     * Handle WebSocket connection established
+     * Listens for new WebSocket connections and logs the event.
+     *
+     * @param event The event fired when a new WebSocket session is connected.
      */
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectedEvent event) {
@@ -35,65 +41,65 @@ public class ChatController {
     }
 
     /**
-     * Handle private message sent via WebSocket
+     * Handles incoming private messages from a user.
+     * It saves the message and forwards it to both the sender and the recipient.
+     *
+     * @param message        The chat message payload.
+     * @param authentication The authentication object of the sender.
      */
     @MessageMapping("/chat.private")
     public void handlePrivateMessage(@Payload ChatMessage message, Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();
-        
-        // Security check - ensure sender ID matches authenticated user
+
         if (!currentUser.getId().equals(message.getSenderId())) {
             log.warn("User {} attempted to send message as {}", currentUser.getId(), message.getSenderId());
             return;
         }
-        
-        // Set sender name if not provided
+
         if (message.getSenderName() == null) {
             message.setSenderName(currentUser.getUsername());
         }
-        
-        // Save message to database
+
         ChatMessageDTO savedMessage = chatMessageService.saveMessage(message);
-        
-        // Send to recipient's private queue
+
+        // Send message to the recipient's private queue
         messagingTemplate.convertAndSendToUser(
-            message.getRecipientId().toString(),
-            "/queue/messages",
-            savedMessage
+                message.getRecipientId().toString(),
+                "/queue/messages",
+                savedMessage
         );
-        
-        // Send confirmation to sender
+
+        // Send message back to the sender's private queue for confirmation
         messagingTemplate.convertAndSendToUser(
-            message.getSenderId().toString(),
-            "/queue/messages",
-            savedMessage
+                message.getSenderId().toString(),
+                "/queue/messages",
+                savedMessage
         );
     }
 
     /**
-     * Handle user joining chat
+     * Handles a user joining the chat.
+     * Associates the user's ID and username with the WebSocket session and broadcasts their online status.
+     *
+     * @param headerAccessor The message header accessor to manage session attributes.
+     * @param authentication The authentication object of the user joining.
      */
     @MessageMapping("/chat.join")
     public void addUser(SimpMessageHeaderAccessor headerAccessor, Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();
-        
-        // Add user ID and username to WebSocket session
+
         headerAccessor.getSessionAttributes().put("userId", currentUser.getId());
         headerAccessor.getSessionAttributes().put("username", currentUser.getUsername());
         log.info("User {} joined chat", currentUser.getUsername());
-        
-        // Notify other users that this user is online
-        // This could be used to show online status in the UI
+
         messagingTemplate.convertAndSend(
-            "/topic/status",
-            Map.of(
-                "userId", currentUser.getId(),
-                "status", "ONLINE",
-                "username", currentUser.getUsername(),
-                "timestamp", LocalDateTime.now()
-            )
+                "/topic/status",
+                Map.of(
+                        "userId", currentUser.getId(),
+                        "status", "ONLINE",
+                        "username", currentUser.getUsername(),
+                        "timestamp", LocalDateTime.now()
+                )
         );
     }
-    
-    // WebSocket endpoints only - REST endpoints are in ChatRestController
 }

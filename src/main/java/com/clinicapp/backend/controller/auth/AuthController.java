@@ -4,47 +4,48 @@ import com.clinicapp.backend.dto.auth.AuthResponse;
 import com.clinicapp.backend.dto.auth.LoginRequest;
 import com.clinicapp.backend.dto.auth.RegisterRequest;
 import com.clinicapp.backend.service.security.AuthService;
-import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * Controller for handling user authentication processes.
+ * Provides public endpoints for user registration and login.
+ */
+@Tag(name = "auth-controller", description = "Endpoints for user registration and login.")
 @RestController
-@RequestMapping("${api.prefix}/auth") // Base path for authentication endpoints
+@RequestMapping("${api.prefix}/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
 
+    /**
+     * Registers a new user in the system.
+     *
+     * @param request The registration request containing user details.
+     * @return An authentication response with a JWT token.
+     */
+    @Operation(summary = "Register a new user.")
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(
-            @Valid @RequestBody RegisterRequest request // Validate the request body
-    ) {
-        try {
-            return ResponseEntity.ok(authService.register(request));
-        } catch (IllegalArgumentException e) {
-            // Handle cases like username/email already exists
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-        } catch (Exception e) {
-            // Catch other potential exceptions during registration
-             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Registration failed", e);
-        }
+    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(authService.register(request));
     }
 
+    /**
+     * Authenticates an existing user and provides a JWT token.
+     *
+     * @param request The login request containing user credentials.
+     * @return An authentication response with a JWT token.
+     */
+    @Operation(summary = "Log in an existing user.")
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(
-            @Valid @RequestBody LoginRequest request // Validate the request body
-    ) {
-        try {
-            return ResponseEntity.ok(authService.login(request));
-        } catch (Exception e) {
-             // Handles AuthenticationException and others
-             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login failed: Invalid credentials", e);
-        }
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
     }
 }

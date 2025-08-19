@@ -44,23 +44,21 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
     @Override
     public HospitalInfo saveInfoAndLogo(String name, String address, String phone, String email, MultipartFile logo) throws IOException {
         HospitalInfo info = new HospitalInfo();
-        // Mise à jour des informations
         if (name != null) info.setName(name);
         if (address != null) info.setAddress(address);
         if (phone != null) info.setPhone(phone);
         if (email != null) info.setEmail(email);
 
-        // Gestion du logo si fourni
         if (logo != null && !logo.isEmpty()) {
             String originalFilename = logo.getOriginalFilename();
             if (originalFilename == null || originalFilename.isEmpty()) {
-                throw new ApiException("Nom de fichier invalide", HttpStatus.BAD_REQUEST, "INVALID_FILENAME");
+                throw new ApiException("Invalid file name", HttpStatus.BAD_REQUEST, "INVALID_FILENAME");
             }
 
             String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
             if (!ALLOWED_EXTENSIONS.contains(extension)) {
                 throw new ApiException(
-                    "Format de fichier non autorisé. Formats acceptés: " + String.join(", ", ALLOWED_EXTENSIONS),
+                    "File format is not allowed. Allowed formats: " + String.join(", ", ALLOWED_EXTENSIONS),
                     HttpStatus.BAD_REQUEST,
                     "INVALID_FILE_FORMAT"
                 );
@@ -78,7 +76,7 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
                         .build()
                 );
             } catch (Exception e) {
-                throw new ApiException("Erreur lors de l'upload sur Minio: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, "MINIO_UPLOAD_ERROR");
+                throw new ApiException("Error uploading to Minio: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, "MINIO_UPLOAD_ERROR");
             }
             info.setLogoPath(objectName);
         }
@@ -89,7 +87,7 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
     @Override
     public HospitalInfo updateInfoAndLogo(Long id, String name, String address, String phone, String email, MultipartFile logo) throws IOException {
         HospitalInfo info = repo.findById(id).orElseThrow(() ->
-            new ApiException("Aucune information d'hôpital trouvée avec l'id : " + id, HttpStatus.NOT_FOUND, "HOSPITAL_INFO_NOT_FOUND"));
+            new ApiException("No hospital information found with id : " + id, HttpStatus.NOT_FOUND, "HOSPITAL_INFO_NOT_FOUND"));
 
         // Mise à jour des informations
         if (name != null) info.setName(name);
@@ -101,19 +99,18 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
         if (logo != null && !logo.isEmpty()) {
             String originalFilename = logo.getOriginalFilename();
             if (originalFilename == null || originalFilename.isEmpty()) {
-                throw new ApiException("Nom de fichier invalide", HttpStatus.BAD_REQUEST, "INVALID_FILENAME");
+                throw new ApiException("Invalid file name", HttpStatus.BAD_REQUEST, "INVALID_FILENAME");
             }
 
             String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
             if (!ALLOWED_EXTENSIONS.contains(extension)) {
                 throw new ApiException(
-                    "Format de fichier non autorisé. Formats acceptés: " + String.join(", ", ALLOWED_EXTENSIONS),
+                    "File format is not allowed. Allowed formats: " + String.join(", ", ALLOWED_EXTENSIONS),
                     HttpStatus.BAD_REQUEST,
                     "INVALID_FILE_FORMAT"
                 );
             }
 
-            // Supprimer l'ancien logo sur Minio s'il existe
             if (info.getLogoPath() != null) {
                 try {
                     minioClient.removeObject(
@@ -123,8 +120,7 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
                             .build()
                     );
                 } catch (Exception e) {
-                    // Log l'erreur mais continue (le fichier pourrait ne pas exister)
-                    System.err.println("Erreur lors de la suppression de l'ancien logo sur Minio: " + e.getMessage());
+                    System.err.println("Error deleting old logo from Minio: " + e.getMessage());
                 }
             }
 
@@ -140,7 +136,7 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
                         .build()
                 );
             } catch (Exception e) {
-                throw new ApiException("Erreur lors de l'upload sur Minio: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, "MINIO_UPLOAD_ERROR");
+                throw new ApiException("Error uploading to Minio: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, "MINIO_UPLOAD_ERROR");
             }
             info.setLogoPath(objectName);
         }
@@ -152,10 +148,9 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
     public void deleteInfo() {
         HospitalInfo info = getInfo();
         if (info == null) {
-            throw new ApiException("Aucune information d'hôpital trouvée", HttpStatus.NOT_FOUND, "HOSPITAL_INFO_NOT_FOUND");
+            throw new ApiException("No hospital information found", HttpStatus.NOT_FOUND, "HOSPITAL_INFO_NOT_FOUND");
         }
 
-        // Supprimer le logo sur Minio s'il existe
         if (info.getLogoPath() != null) {
             try {
                 minioClient.removeObject(
@@ -165,8 +160,7 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
                         .build()
                 );
             } catch (Exception e) {
-                // Log l'erreur mais continue (le fichier pourrait ne pas exister)
-                System.err.println("Erreur lors de la suppression du logo sur Minio: " + e.getMessage());
+                System.err.println("Error deleting logo from Minio: " + e.getMessage());
             }
         }
 
@@ -177,13 +171,13 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
     public HospitalInfo uploadLogo(MultipartFile file) throws IOException {
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || originalFilename.isEmpty()) {
-            throw new ApiException("Nom de fichier invalide", HttpStatus.BAD_REQUEST, "INVALID_FILENAME");
+            throw new ApiException("Invalid file name", HttpStatus.BAD_REQUEST, "INVALID_FILENAME");
         }
 
         String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
             throw new ApiException(
-                "Format de fichier non autorisé. Formats acceptés: " + String.join(", ", ALLOWED_EXTENSIONS),
+                "File format is not allowed. Allowed formats: " + String.join(", ", ALLOWED_EXTENSIONS),
                 HttpStatus.BAD_REQUEST,
                 "INVALID_FILE_FORMAT"
             );
@@ -204,7 +198,7 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
                     .build()
             );
         } catch (Exception e) {
-            throw new ApiException("Erreur lors de l'upload sur Minio: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, "MINIO_UPLOAD_ERROR");
+            throw new ApiException("Error uploading to Minio: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, "MINIO_UPLOAD_ERROR");
         }
         info.setLogoPath(objectName);
         return repo.save(info);

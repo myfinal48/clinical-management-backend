@@ -21,7 +21,7 @@ public class Prescription {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Lob // Pour les textes longs
+    @Lob
     private String diagnostic;
 
     @Lob

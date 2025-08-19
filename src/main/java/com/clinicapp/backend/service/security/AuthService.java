@@ -3,6 +3,7 @@ package com.clinicapp.backend.service.security;
 import com.clinicapp.backend.dto.auth.AuthResponse;
 import com.clinicapp.backend.dto.auth.LoginRequest;
 import com.clinicapp.backend.dto.auth.RegisterRequest;
+import com.clinicapp.backend.exceptions.BadRequestException;
 import com.clinicapp.backend.model.security.User;
 import com.clinicapp.backend.repository.security.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,26 +33,23 @@ public class AuthService {
      * @throws IllegalArgumentException if username or email already exists.
      */
     public AuthResponse register(RegisterRequest request) {
-        // Check if username or email already exists
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new IllegalArgumentException("Username already exists");
+            throw new BadRequestException("Username already exists");
         }
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email already exists");
+            throw new BadRequestException("Email already exists");
         }
 
         var user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword())) // Encode password
+                .password(passwordEncoder.encode(request.getPassword()))
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .role(request.getRole())
                 .build();
 
-        userRepository.save(user); // Save the new user
-
-        // Generate JWT token for the new user
+        userRepository.save(user);
         var jwtToken = jwtService.generateToken(user);
         return AuthResponse.builder()
                 .token(jwtToken)
@@ -67,34 +65,28 @@ public class AuthService {
      */
     public AuthResponse login(LoginRequest request) {
         try {
-            // Authenticate the user using Spring Security's AuthenticationManager
-            // This will use our UserDetailsServiceImpl and PasswordEncoder
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getEmail(), // Use email from LoginRequest
+                            request.getEmail(),
                             request.getPassword()
                     )
             );
         } catch (AuthenticationException e) {
-            // Log failed login attempt
             String ipAddress = getClientIpAddress();
             String userAgent = getUserAgent();
-            throw e; // Re-throw the exception
+            throw e;
         }
 
-        // If authentication is successful, find the user by email
-        var user = userRepository.findByEmail(request.getEmail()) // Find by email
-                .orElseThrow(() -> new IllegalStateException("User not found after successful authentication")); // Should not happen
+        var user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalStateException("User not found after successful authentication"));
 
-        // Generate JWT token
         var jwtToken = jwtService.generateToken(user);
         return AuthResponse.builder()
                 .token(jwtToken)
-                .user(user) // Add the user object to the response
+                .user(user)
                 .build();
     }
 
-    // Utility methods to get request information
     private String getClientIpAddress() {
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -107,7 +99,6 @@ public class AuthService {
                 return request.getRemoteAddr();
             }
         } catch (Exception e) {
-            // Log warning but don't fail the operation
         }
         return "unknown";
     }
@@ -119,7 +110,6 @@ public class AuthService {
                 return attributes.getRequest().getHeader("User-Agent");
             }
         } catch (Exception e) {
-            // Log warning but don't fail the operation
         }
         return "unknown";
     }

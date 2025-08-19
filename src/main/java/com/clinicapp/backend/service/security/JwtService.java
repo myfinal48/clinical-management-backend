@@ -1,11 +1,11 @@
 package com.clinicapp.backend.service.security;
 
-import com.clinicapp.backend.model.security.User; // Import User model
+import com.clinicapp.backend.model.security.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value; // For potential future config loading
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -18,14 +18,14 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    @Value("${application.security.jwt.secret-key:placeholderSecretKeyThatIsVeryLongAndSecure1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz}") // Example placeholder
+    @Value("${application.security.jwt.secret-key:placeholderSecretKeyThatIsVeryLongAndSecure1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz}")
     private String secretKeyString;
 
     @Value("${application.security.jwt.expiration}")
-    private long jwtExpiration; // e.g., 86400000 for 24 hours
+    private long jwtExpiration;
 
     @Value("${application.security.jwt.refresh-token.expiration}")
-    private long refreshExpiration; // e.g., 604800000 for 7 days
+    private long refreshExpiration;
 
 
     public String extractUsername(String token) {
@@ -54,15 +54,14 @@ public class JwtService {
     }
 
     private String buildToken(Map<String, Object> extraClaims, UserDetails userDetails, long expiration) {
-        // Cast UserDetails to our User type to access email
         String email = (userDetails instanceof User) ? ((User) userDetails).getEmail() : userDetails.getUsername();
 
         return Jwts.builder()
                 .claims(extraClaims)
-                .subject(email) // Use email as subject
+                .subject(email)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey(), Jwts.SIG.HS256) // Use the signing key
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }
 
@@ -71,8 +70,7 @@ public class JwtService {
      * Checks if the username matches and the token is not expired.
      */
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String email = extractUsername(token); // This now extracts the email (subject)
-        // Compare extracted email with the email from UserDetails (after casting)
+        final String email = extractUsername(token);
         String userDetailsEmail = (userDetails instanceof User) ? ((User) userDetails).getEmail() : userDetails.getUsername();
         return (email.equals(userDetailsEmail)) && !isTokenExpired(token);
     }
@@ -96,7 +94,7 @@ public class JwtService {
      */
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .verifyWith(getSigningKey()) // Verify using the signing key
+                .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

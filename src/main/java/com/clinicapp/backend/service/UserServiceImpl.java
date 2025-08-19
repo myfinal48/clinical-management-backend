@@ -22,7 +22,7 @@ import java.util.Objects;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // Needed for encoding password on create/update
+    private final PasswordEncoder passwordEncoder;
 
     private UserResponseDTO mapToResponseDTO(User user) {
         return UserResponseDTO.builder()

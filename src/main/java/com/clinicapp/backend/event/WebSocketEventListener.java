@@ -1,7 +1,5 @@
 package com.clinicapp.backend.event;
 
-import com.clinicapp.backend.model.chat.ChatMessage;
-import com.clinicapp.backend.model.chat.ChatMessageEntity;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +10,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -42,7 +39,6 @@ public class WebSocketEventListener {
         if (username != null) {
             logger.info("User Disconnected : " + username);
 
-            // Notify everyone about the user leaving
             messagingTemplate.convertAndSend(
                 "/topic/status",
                 Map.of(

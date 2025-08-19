@@ -21,14 +21,12 @@ import com.clinicapp.backend.model.notification.NotificationType;
 import com.clinicapp.backend.model.notification.NotificationChannel;
 import java.util.Set;
 import java.math.BigDecimal;
-
 @Service
 @RequiredArgsConstructor
 public class InvoiceServiceImpl implements InvoiceService {
     private final InvoiceRepository invoiceRepository;
     private final PatientRepository patientRepository;
     private final InvoiceMapper invoiceMapper;
-    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -37,7 +35,6 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + dto.getPatientId()));
         Invoice invoice = invoiceMapper.toEntity(dto, patient);
         InvoiceResponseDTO response = invoiceMapper.toResponseDTO(invoiceRepository.save(invoice));
-        // Suppression de l'envoi de notification au patient
         return response;
     }
 

@@ -14,7 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @SpringBootApplication
 @EnableScheduling
 @EnableAsync
-@RequiredArgsConstructor // Add for dependency injection
+@RequiredArgsConstructor
 public class ClinicalManagementBackendApplication {
 
 	private final UserRepository userRepository;
@@ -34,7 +34,7 @@ public class ClinicalManagementBackendApplication {
 						.lastName("User")
 						.username("admin")
 						.email(adminEmail)
-						.password(passwordEncoder.encode("password")) // Encode the password
+						.password(passwordEncoder.encode("password"))
 						.role(Role.ADMIN)
 						.build();
 				User doctorUser = User.builder()
@@ -42,7 +42,7 @@ public class ClinicalManagementBackendApplication {
 						.lastName("Noubissie")
 						.username("doctor")
 						.email("doctor@belvicare.com")
-						.password(passwordEncoder.encode("password")) // Encode the password
+						.password(passwordEncoder.encode("password"))
 						.role(Role.DOCTOR)
 						.build();
 				User secUser = User.builder()
@@ -50,7 +50,7 @@ public class ClinicalManagementBackendApplication {
 						.lastName("Nyangono")
 						.username("secretary")
 						.email("secretary@belvicare.com")
-						.password(passwordEncoder.encode("password")) // Encode the password
+						.password(passwordEncoder.encode("password"))
 						.role(Role.SECRETARY)
 						.build();
 				userRepository.save(adminUser);

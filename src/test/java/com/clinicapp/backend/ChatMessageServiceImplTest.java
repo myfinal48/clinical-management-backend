@@ -20,18 +20,14 @@ import static org.mockito.Mockito.*;
 class ChatMessageServiceImplTest {
     @Test
     void testNotificationSentToRecipientOnMessageSend() {
-        // Mocks
         ChatMessageRepository chatMessageRepository = mock(ChatMessageRepository.class);
         UserRepository userRepository = mock(UserRepository.class);
         SimpMessagingTemplate messagingTemplate = mock(SimpMessagingTemplate.class);
         NotificationService notificationService = mock(NotificationService.class);
 
-        // Service
         ChatMessageServiceImpl service = new ChatMessageServiceImpl(
             chatMessageRepository, userRepository, messagingTemplate, notificationService
         );
-
-        // Data
         Long senderId = 1L;
         Long recipientId = 2L;
         ChatMessage message = new ChatMessage();
@@ -54,10 +50,8 @@ class ChatMessageServiceImplTest {
             .build();
         when(chatMessageRepository.save(any(ChatMessageEntity.class))).thenReturn(entity);
 
-        // Appel
         service.saveMessage(message);
 
-        // Vérification
         ArgumentCaptor<NotificationRequestDTO> captor = ArgumentCaptor.forClass(NotificationRequestDTO.class);
         verify(notificationService).sendNotification(captor.capture());
         NotificationRequestDTO notif = captor.getValue();
