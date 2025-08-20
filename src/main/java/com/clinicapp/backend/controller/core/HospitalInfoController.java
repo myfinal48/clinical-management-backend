@@ -52,10 +52,10 @@ public class HospitalInfoController {
     @Operation(summary = "Save new hospital information and logo. Role: ADMIN.")
     @PostMapping(value = "/info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<HospitalInfo> saveInfoAndLogo(
-            @Parameter(description = "Hospital name") @RequestParam(value = "name", required = false) String name,
-            @Parameter(description = "Hospital address") @RequestParam(value = "address", required = false) String address,
-            @Parameter(description = "Hospital phone number") @RequestParam(value = "phone", required = false) String phone,
-            @Parameter(description = "Hospital email") @RequestParam(value = "email", required = false) String email,
+            @Parameter(description = "Hospital name") @RequestPart(value = "name", required = false) String name,
+            @Parameter(description = "Hospital address") @RequestPart(value = "address", required = false) String address,
+            @Parameter(description = "Hospital phone number") @RequestPart(value = "phone", required = false) String phone,
+            @Parameter(description = "Hospital email") @RequestPart(value = "email", required = false) String email,
             @Parameter(description = "Logo file (JPG, PNG, JPEG, SVG)") @RequestPart(value = "logo", required = false) MultipartFile logo) throws Exception {
         return ResponseEntity.ok(service.saveInfoAndLogo(name, address, phone, email, logo));
     }
@@ -76,10 +76,10 @@ public class HospitalInfoController {
     @PutMapping(value = "/info/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<HospitalInfo> updateInfoAndLogo(
             @Parameter(description = "Hospital info ID") @PathVariable Long id,
-            @Parameter(description = "Hospital name") @RequestParam(value = "name", required = false) String name,
-            @Parameter(description = "Hospital address") @RequestParam(value = "address", required = false) String address,
-            @Parameter(description = "Hospital phone number") @RequestParam(value = "phone", required = false) String phone,
-            @Parameter(description = "Hospital email") @RequestParam(value = "email", required = false) String email,
+            @Parameter(description = "Hospital name") @RequestPart(value = "name", required = false) String name,
+            @Parameter(description = "Hospital address") @RequestPart(value = "address", required = false) String address,
+            @Parameter(description = "Hospital phone number") @RequestPart(value = "phone", required = false) String phone,
+            @Parameter(description = "Hospital email") @RequestPart(value = "email", required = false) String email,
             @Parameter(description = "Logo file (JPG, PNG, JPEG, SVG)") @RequestPart(value = "logo", required = false) MultipartFile logo) throws Exception {
         return ResponseEntity.ok(service.updateInfoAndLogo(id, name, address, phone, email, logo));
     }
