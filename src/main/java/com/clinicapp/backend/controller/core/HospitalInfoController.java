@@ -85,14 +85,15 @@ public class HospitalInfoController {
     }
 
     /**
-     * Deletes all hospital information.
+     * Deletes hospital information by ID.
      *
+     * @param id The ID of the hospital information to delete.
      * @return A confirmation message.
      */
-    @Operation(summary = "Delete all hospital information. Role: ADMIN.")
-    @DeleteMapping("/info")
-    public ResponseEntity<String> deleteInfo() {
-        service.deleteInfo();
-        return ResponseEntity.ok("Hospital information deleted successfully");
+    @Operation(summary = "Delete hospital information by ID. Role: ADMIN.")
+    @DeleteMapping("/info/{id}")
+    public ResponseEntity<String> deleteInfo(@PathVariable Long id) {
+        service.deleteInfo(id);
+        return ResponseEntity.ok("Hospital information with id " + id + " deleted successfully");
     }
 }

@@ -162,26 +162,26 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
     }
 
     @Override
-    public void deleteInfo() {
-        HospitalInfo info = getInfo();
-        if (info == null) {
-            throw new ApiException("No hospital information found", HttpStatus.NOT_FOUND, "HOSPITAL_INFO_NOT_FOUND");
-        }
+    public void deleteInfo(Long id) {
+        HospitalInfo info = repo.findById(id).orElseThrow(() ->
+                new ApiException("No hospital information found with id: " + id, HttpStatus.NOT_FOUND, "HOSPITAL_INFO_NOT_FOUND"));
 
         if (info.getLogoPath() != null) {
             try {
                 minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(info.getLogoPath())
-                        .build()
+                        RemoveObjectArgs.builder()
+                                .bucket(bucketName)
+                                .object(info.getLogoPath())
+                                .build()
                 );
+                logger.info("Successfully deleted logo from Minio: {}", info.getLogoPath());
             } catch (Exception e) {
-                System.err.println("Error deleting logo from Minio: " + e.getMessage());
+                logger.error("Error deleting logo from Minio: " + e.getMessage());
             }
         }
 
         repo.delete(info);
+        logger.info("Successfully deleted hospital information with id: {}", id);
     }
 
     @Override
@@ -204,7 +204,7 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
         if (info == null) info = new HospitalInfo();
 
         String uniqueSuffix = UUID.randomUUID().toString();
-        String objectName = "logo/" + uniqueSuffix + "_" + originalFilename;
+        String objectName = "logos/" + uniqueSuffix + "_" + originalFilename;
         try {
             minioClient.putObject(
                 PutObjectArgs.builder()
