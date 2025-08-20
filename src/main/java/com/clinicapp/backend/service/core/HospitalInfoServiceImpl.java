@@ -31,14 +31,21 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
     @Value("${minio.bucket-name}")
     private String bucketName;
 
+    @Value("${minio.url}")
+    private String minioUrl;
+
     @Override
     public HospitalInfo getInfo() {
-        return repo.findAll().stream().findFirst().orElse(null);
+        HospitalInfo info = repo.findAll().stream().findFirst().orElse(null);
+        buildLogoUrl(info);
+        return info;
     }
 
     @Override
     public HospitalInfo saveInfo(HospitalInfo info) {
-        return repo.save(info);
+        HospitalInfo savedInfo = repo.save(info);
+        buildLogoUrl(savedInfo);
+        return savedInfo;
     }
 
     @Override
@@ -81,7 +88,9 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
             info.setLogoPath(objectName);
         }
 
-        return repo.save(info);
+        HospitalInfo savedInfo = repo.save(info);
+        buildLogoUrl(savedInfo);
+        return savedInfo;
     }
 
     @Override
@@ -141,7 +150,9 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
             info.setLogoPath(objectName);
         }
 
-        return repo.save(info);
+        HospitalInfo savedInfo = repo.save(info);
+        buildLogoUrl(savedInfo);
+        return savedInfo;
     }
 
     @Override
@@ -201,11 +212,21 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
             throw new ApiException("Error uploading to Minio: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, "MINIO_UPLOAD_ERROR");
         }
         info.setLogoPath(objectName);
-        return repo.save(info);
+        HospitalInfo savedInfo = repo.save(info);
+        buildLogoUrl(savedInfo);
+        return savedInfo;
     }
 
     @Override
     public List<HospitalInfo> getAllInfo() {
-        return repo.findAll();
+        List<HospitalInfo> infos = repo.findAll();
+        infos.forEach(this::buildLogoUrl);
+        return infos;
     }
-} 
+
+    private void buildLogoUrl(HospitalInfo info) {
+        if (info != null && info.getLogoPath() != null) {
+            info.setLogoUrl(String.format("%s/%s/%s", minioUrl, bucketName, info.getLogoPath()));
+        }
+    }
+}

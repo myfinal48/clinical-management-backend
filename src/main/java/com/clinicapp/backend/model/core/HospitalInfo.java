@@ -21,4 +21,7 @@ public class HospitalInfo {
     private String phone;
     private String email;
     private String logoPath;
+
+    @Transient
+    private String logoUrl;
 } 
