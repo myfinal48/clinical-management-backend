@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -14,14 +16,18 @@ import com.clinicapp.backend.exceptions.ApiException;
 import com.clinicapp.backend.model.core.HospitalInfo;
 import com.clinicapp.backend.repository.core.HospitalInfoRepository;
 import io.minio.MinioClient;
+import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
+import io.minio.http.Method;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class HospitalInfoServiceImpl implements HospitalInfoService {
+
+    private static final Logger logger = LoggerFactory.getLogger(HospitalInfoServiceImpl.class);
     
     private final HospitalInfoRepository repo;
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png", "svg");
@@ -226,7 +232,19 @@ public class HospitalInfoServiceImpl implements HospitalInfoService {
 
     private void buildLogoUrl(HospitalInfo info) {
         if (info != null && info.getLogoPath() != null) {
-            info.setLogoUrl(String.format("%s/%s/%s", minioUrl, bucketName, info.getLogoPath()));
+            try {
+                String url = minioClient.getPresignedObjectUrl(
+                        GetPresignedObjectUrlArgs.builder()
+                                .method(Method.GET)
+                                .bucket(bucketName)
+                                .object(info.getLogoPath())
+                                .expiry(15 * 60)
+                                .build());
+                info.setLogoUrl(url);
+            } catch (Exception e) {
+                logger.error("Error generating presigned URL: " + e.getMessage());
+                info.setLogoUrl(null);
+            }
         }
     }
 }
