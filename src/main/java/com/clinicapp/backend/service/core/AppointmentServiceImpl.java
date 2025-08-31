@@ -229,15 +229,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         return page.map(this::toResponseDTO);
     }
 
-    @Override
-    public List<AppointmentResponseDTO> listAppointments() {
-        throw new BusinessException("This method is deprecated. Please use the paginated version.");
-    }
-
-    @Override
-    public List<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room) {
-        throw new BusinessException("This method is deprecated. Please use the paginated version.");
-    }
 
     @Override
     public AppointmentResponseDTO markAsCompleted(Long id) {

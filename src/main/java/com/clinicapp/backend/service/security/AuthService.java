@@ -72,8 +72,6 @@ public class AuthService {
                     )
             );
         } catch (AuthenticationException e) {
-            String ipAddress = getClientIpAddress();
-            String userAgent = getUserAgent();
             throw e;
         }
 
