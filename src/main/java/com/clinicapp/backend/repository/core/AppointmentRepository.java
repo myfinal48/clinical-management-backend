@@ -14,10 +14,10 @@ import java.util.List;
 
 @Repository
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
-    @Query("SELECT COUNT(a) > 0 FROM Appointment a WHERE a.doctor = :doctor AND a.dateTime BETWEEN :start AND :end AND a.status NOT IN ('CANCELLED', 'NO_SHOW')")
+    @Query("SELECT COUNT(a) > 0 FROM Appointment a WHERE a.doctor = :doctor AND a.dateTime BETWEEN :start AND :end AND a.status NOT IN ('CANCELLED', 'LATE_CANCELLED', 'CLINIC_CANCELLED')")
     boolean existsByDoctorAndDateTimeOverlap(@Param("doctor") String doctor, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    @Query("SELECT COUNT(a) > 0 FROM Appointment a WHERE a.patient.id = :patientId AND DATE(a.dateTime) = :date AND a.status NOT IN ('CANCELLED', 'NO_SHOW')")
+    @Query("SELECT COUNT(a) > 0 FROM Appointment a WHERE a.patient.id = :patientId AND DATE(a.dateTime) = :date AND a.status NOT IN ('CANCELLED', 'LATE_CANCELLED', 'CLINIC_CANCELLED')")
     boolean existsByPatientAndDate(@Param("patientId") Long patientId, @Param("date") LocalDate date);
 
     List<Appointment> findByDoctorAndDateTimeBetween(String doctor, LocalDateTime start, LocalDateTime end);

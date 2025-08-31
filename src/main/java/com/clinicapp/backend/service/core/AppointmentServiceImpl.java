@@ -2,16 +2,16 @@ package com.clinicapp.backend.service.core;
 
 import com.clinicapp.backend.dto.core.AppointmentRequestDTO;
 import com.clinicapp.backend.dto.core.AppointmentResponseDTO;
-import com.clinicapp.backend.model.core.Patient;
+import com.clinicapp.backend.exceptions.BusinessException;
 import com.clinicapp.backend.model.core.Appointment;
+import com.clinicapp.backend.model.core.Patient;
 import com.clinicapp.backend.repository.core.AppointmentRepository;
 import com.clinicapp.backend.repository.core.PatientRepository;
-import com.clinicapp.backend.exceptions.BusinessException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -217,7 +217,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, String status, Pageable pageable) {
-        // Handle default sorting if no sort is provided or if sort is invalid
         if (pageable.getSort().isUnsorted() || hasInvalidSort(pageable)) {
             pageable = org.springframework.data.domain.PageRequest.of(
                 pageable.getPageNumber(), 
@@ -228,33 +227,40 @@ public class AppointmentServiceImpl implements AppointmentService {
         
         Page<Appointment> page;
         
-        // Handle different filter combinations
-        if (doctor != null && date != null) {
-            LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
-            LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
-            page = appointmentRepository.findByDoctorAndDateTimeBetween(doctor, start, end, pageable);
-        } else if (room != null && date != null) {
-            LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
-            LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
-            page = appointmentRepository.findByRoomAndDateTimeBetween(room, start, end, pageable);
-        } else if (doctor != null) {
-            page = appointmentRepository.findByDoctor(doctor, pageable);
-        } else if (room != null) {
-            page = appointmentRepository.findByRoom(room, pageable);
-        } else if (date != null) {
-            LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
-            LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
-            page = appointmentRepository.findByDateTimeBetween(start, end, pageable);
-        } else if (status != null) {
-            try {
-                Appointment.Status statusEnum = Appointment.Status.valueOf(status.toUpperCase());
-                page = appointmentRepository.findByStatus(statusEnum, pageable);
-            } catch (IllegalArgumentException e) {
-                // Invalid status, return all appointments
+        try {
+            // Handle different filter combinations
+            if (doctor != null && date != null) {
+                LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
+                LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
+                page = appointmentRepository.findByDoctorAndDateTimeBetween(doctor, start, end, pageable);
+            } else if (room != null && date != null) {
+                LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
+                LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
+                page = appointmentRepository.findByRoomAndDateTimeBetween(room, start, end, pageable);
+            } else if (doctor != null) {
+                if (doctor.trim().isEmpty()) {
+                    throw new BusinessException("Doctor parameter cannot be empty");
+                }
+                page = appointmentRepository.findByDoctor(doctor, pageable);
+            } else if (room != null) {
+                page = appointmentRepository.findByRoom(room, pageable);
+            } else if (date != null) {
+                LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
+                LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
+                page = appointmentRepository.findByDateTimeBetween(start, end, pageable);
+            } else if (status != null) {
+                try {
+                    Appointment.Status statusEnum = Appointment.Status.valueOf(status.toUpperCase());
+                    page = appointmentRepository.findByStatus(statusEnum, pageable);
+                } catch (IllegalArgumentException e) {
+                    page = appointmentRepository.findAll(pageable);
+                }
+            } else {
                 page = appointmentRepository.findAll(pageable);
             }
-        } else {
-            page = appointmentRepository.findAll(pageable);
+        } catch (Exception e) {
+            e.printStackTrace();
+            page = Page.empty(pageable);
         }
         
         return page.map(this::toResponseDTO);
