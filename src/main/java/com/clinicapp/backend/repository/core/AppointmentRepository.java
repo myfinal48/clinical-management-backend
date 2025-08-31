@@ -35,4 +35,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     Page<Appointment> findByDoctorAndDateTimeBetween(String doctor, LocalDateTime start, LocalDateTime end, Pageable pageable);
     Page<Appointment> findByRoomAndDateTimeBetween(String room, LocalDateTime start, LocalDateTime end, Pageable pageable);
-} 
+
+    Page<Appointment> findByDoctor(String doctor, Pageable pageable);
+    Page<Appointment> findByRoom(String room, Pageable pageable);
+    Page<Appointment> findByDateTimeBetween(LocalDateTime start, LocalDateTime end, Pageable pageable);
+    Page<Appointment> findByStatus(Appointment.Status status, Pageable pageable);
+}

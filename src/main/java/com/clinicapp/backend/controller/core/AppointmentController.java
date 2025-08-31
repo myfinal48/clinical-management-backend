@@ -78,7 +78,7 @@ public class AppointmentController {
             @RequestParam(required = false) String status,
             Pageable pageable) {
         if (doctor != null || date != null || room != null || status != null) {
-            return appointmentService.listAppointmentsFiltered(doctor, date, room, pageable);
+            return appointmentService.listAppointmentsFiltered(doctor, date, room, status, pageable);
         }
         return appointmentService.listAppointments(pageable);
     }

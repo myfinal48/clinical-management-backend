@@ -36,6 +36,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     private static final long CANCELLATION_DEADLINE_HOURS = 24;
     private static final long MIN_BOOKING_HOURS = 2;
     private static final int BUFFER_MINUTES = 5;
+    private static final String DEFAULT_SORT_FIELD = "dateTime";
+    private static final String TIME_START_SUFFIX = "T00:00:00";
+    private static final String TIME_END_SUFFIX = "T23:59:59";
 
     @Override
     @Transactional
@@ -99,7 +102,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             pageable = org.springframework.data.domain.PageRequest.of(
                 pageable.getPageNumber(), 
                 pageable.getPageSize(), 
-                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "dateTime")
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, DEFAULT_SORT_FIELD)
             );
         }
         Page<Appointment> page = appointmentRepository.findAll(pageable);
@@ -121,7 +124,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
     
     private boolean isValidSortField(String field) {
-        return java.util.Set.of("id", "dateTime", "reason", "doctor", "room", "status").contains(field);
+        return java.util.Set.of("id", DEFAULT_SORT_FIELD, "reason", "doctor", "room", "status").contains(field);
     }
 
     @Override
@@ -213,19 +216,47 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, Pageable pageable) {
+    public Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, String status, Pageable pageable) {
+        // Handle default sorting if no sort is provided or if sort is invalid
+        if (pageable.getSort().isUnsorted() || hasInvalidSort(pageable)) {
+            pageable = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(), 
+                pageable.getPageSize(), 
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, DEFAULT_SORT_FIELD)
+            );
+        }
+        
         Page<Appointment> page;
+        
+        // Handle different filter combinations
         if (doctor != null && date != null) {
-            LocalDateTime start = LocalDateTime.parse(date + "T00:00:00");
-            LocalDateTime end = LocalDateTime.parse(date + "T23:59:59");
+            LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
+            LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
             page = appointmentRepository.findByDoctorAndDateTimeBetween(doctor, start, end, pageable);
         } else if (room != null && date != null) {
-            LocalDateTime start = LocalDateTime.parse(date + "T00:00:00");
-            LocalDateTime end = LocalDateTime.parse(date + "T23:59:59");
+            LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
+            LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
             page = appointmentRepository.findByRoomAndDateTimeBetween(room, start, end, pageable);
+        } else if (doctor != null) {
+            page = appointmentRepository.findByDoctor(doctor, pageable);
+        } else if (room != null) {
+            page = appointmentRepository.findByRoom(room, pageable);
+        } else if (date != null) {
+            LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
+            LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
+            page = appointmentRepository.findByDateTimeBetween(start, end, pageable);
+        } else if (status != null) {
+            try {
+                Appointment.Status statusEnum = Appointment.Status.valueOf(status.toUpperCase());
+                page = appointmentRepository.findByStatus(statusEnum, pageable);
+            } catch (IllegalArgumentException e) {
+                // Invalid status, return all appointments
+                page = appointmentRepository.findAll(pageable);
+            }
         } else {
             page = appointmentRepository.findAll(pageable);
         }
+        
         return page.map(this::toResponseDTO);
     }
 
