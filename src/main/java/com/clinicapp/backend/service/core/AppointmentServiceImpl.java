@@ -95,8 +95,33 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public Page<AppointmentResponseDTO> listAppointments(Pageable pageable) {
+        if (pageable.getSort().isUnsorted() || hasInvalidSort(pageable)) {
+            pageable = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(), 
+                pageable.getPageSize(), 
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "dateTime")
+            );
+        }
         Page<Appointment> page = appointmentRepository.findAll(pageable);
         return page.map(this::toResponseDTO);
+    }
+    
+    private boolean hasInvalidSort(Pageable pageable) {
+        try {
+            for (org.springframework.data.domain.Sort.Order order : pageable.getSort()) {
+                String property = order.getProperty();
+                if (!isValidSortField(property)) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+    
+    private boolean isValidSortField(String field) {
+        return java.util.Set.of("id", "dateTime", "reason", "doctor", "room", "status").contains(field);
     }
 
     @Override
