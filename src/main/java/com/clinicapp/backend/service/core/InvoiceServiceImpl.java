@@ -15,12 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
-import com.clinicapp.backend.service.notification.NotificationService;
-import com.clinicapp.backend.dto.notification.NotificationRequestDTO;
-import com.clinicapp.backend.model.notification.NotificationType;
-import com.clinicapp.backend.model.notification.NotificationChannel;
-import java.util.Set;
 import java.math.BigDecimal;
+
 @Service
 @RequiredArgsConstructor
 public class InvoiceServiceImpl implements InvoiceService {

@@ -41,10 +41,10 @@ public class Appointment {
     private String cancellationReason;
 
     /**
-     * Statuts possibles pour un rendez-vous :
-     * SCHEDULED, CONFIRMED, CANCELLED, IN_PROGRESS, COMPLETED, NO_SHOW, BILLED, LATE_CANCELLED, CLINIC_CANCELLED
+     * Status for appointments - only includes actually used statuses:
+     * SCHEDULED, CANCELLED, COMPLETED, LATE_CANCELLED, CLINIC_CANCELLED
      */
     public enum Status {
-        SCHEDULED, CONFIRMED, CANCELLED, IN_PROGRESS, COMPLETED, NO_SHOW, BILLED, LATE_CANCELLED, CLINIC_CANCELLED
+        SCHEDULED, CANCELLED, COMPLETED, LATE_CANCELLED, CLINIC_CANCELLED
     }
 } 

@@ -82,7 +82,7 @@ public class AdminUserController {
      */
     @Operation(summary = "Update a user by ID. Role: ADMIN.")
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id, @RequestBody UpdateUserRequestDTO user) {
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id, @ModelAttribute UpdateUserRequestDTO user) {
         UserResponseDTO updatedUser = userService.updateUser(id, user);
         return ResponseEntity.ok(updatedUser);
     }

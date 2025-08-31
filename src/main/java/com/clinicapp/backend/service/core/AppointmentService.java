@@ -9,13 +9,11 @@ import org.springframework.data.domain.Pageable;
 public interface AppointmentService {
     AppointmentResponseDTO createAppointment(AppointmentRequestDTO dto);
     AppointmentResponseDTO getAppointment(Long id);
-    List<AppointmentResponseDTO> listAppointments();
     AppointmentResponseDTO updateAppointment(Long id, AppointmentRequestDTO dto);
     void deleteAppointment(Long id);
     boolean cancelAppointment(Long id, String initiatedBy);
-    List<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room);
     List<java.time.OffsetDateTime> findAlternativeSlots(String doctor, java.time.OffsetDateTime desiredTime);
     Page<AppointmentResponseDTO> listAppointments(Pageable pageable);
-    Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, Pageable pageable);
+    Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, String status, Pageable pageable);
     AppointmentResponseDTO markAsCompleted(Long id);
-} 
+}

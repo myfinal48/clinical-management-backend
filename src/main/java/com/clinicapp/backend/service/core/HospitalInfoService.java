@@ -17,7 +17,7 @@ public interface HospitalInfoService {
     
     HospitalInfo updateInfoAndLogo(Long id, String name, String address, String phone, String email, MultipartFile logo) throws IOException;
     
-    void deleteInfo();
+    void deleteInfo(Long id);
     
     HospitalInfo uploadLogo(MultipartFile file) throws IOException;
     
