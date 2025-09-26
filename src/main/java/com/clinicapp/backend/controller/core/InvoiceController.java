@@ -170,9 +170,6 @@ public class InvoiceController {
     @GetMapping("/{id}/pdf")
     @PreAuthorize("hasAnyRole('SECRETARY')")
     public ResponseEntity<InputStreamResource> generateInvoicePdf(@PathVariable Long id) {
-        InvoiceResponseDTO invoiceResponse = invoiceService.getInvoiceById(id);
-        
-
         var invoice = invoiceService.getInvoiceEntityById(id);
         var hospital = hospitalInfoService.getInfo();
         
