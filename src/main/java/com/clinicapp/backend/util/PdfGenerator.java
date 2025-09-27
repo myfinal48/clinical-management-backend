@@ -346,7 +346,6 @@ public class PdfGenerator {
             detailsTable.setSpacingAfter(20f);
 
             addTableHeaderCell(detailsTable, "Description");
-            addTableHeaderCell(detailsTable, "Montant");
 
             // Split description into lines if it contains line breaks
             String[] lines = invoice.getDescription().split("\n");
@@ -369,7 +368,7 @@ public class PdfGenerator {
         summaryTable.setSpacingAfter(20f);
 
         // Amount including tax (for now, we consider the amount includes tax)
-        addTableHeaderCell(summaryTable, "Montant TTC");
+        addTableHeaderCell(summaryTable, "Montant");
         addTableCell(summaryTable, String.format("%.2f Fcfa", invoice.getAmount()));
 
         document.add(summaryTable);
