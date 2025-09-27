@@ -809,9 +809,8 @@ docker compose up minio --build -d
 docker compose up minio -d
 ```
 
-configure .env variable to be recognise by your ide (intellij, vscode)
 
----
+configure .env variable to be recognise by your ide (intellij, vscode)
 
 ## 📚 Documentation Complète
 
@@ -1699,7 +1698,5 @@ Ce projet est sous licence Apache 2.0 - voir le fichier [LICENSE](LICENSE) pour 
 - 📧 Email : support@belvicare.com
 - 📱 Téléphone : +237 XXX XXX XXX
 - 💬 Chat : Via l'application
-
----
 
 *Développé avec ❤️ pour améliorer la gestion hospitalière*

@@ -45,7 +45,6 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-ui.html"
     };
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -55,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(SWAGGER_WHITELIST).permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/ws-chat/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/admin/users/**").hasRole("ADMIN")
@@ -91,8 +91,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
          CorsConfiguration configuration = new CorsConfiguration();
-         String corsAllowedOrigins = env.getProperty("CORS_ALLOWED_ORIGINS",",");
-         List<String> allowedOrigins = Arrays.stream(corsAllowedOrigins.split(",")).map(String::trim).toList();
+         String corsAllowedOrigins = env.getProperty("CORS_ALLOWED_ORIGINS", "");
+         List<String> parsed = Arrays.stream(corsAllowedOrigins.split(","))
+                 .map(String::trim)
+                 .filter(s -> !s.isEmpty())
+                 .toList();
+         List<String> allowedOrigins = parsed.isEmpty()
+                 ? Arrays.asList("http://localhost:3000", "http://127.0.0.1:3000")
+                 : parsed;
          configuration.setAllowedOrigins(allowedOrigins);
          configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
          configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
