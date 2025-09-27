@@ -5,9 +5,10 @@ import com.clinicapp.backend.model.security.User;
 import com.clinicapp.backend.repository.security.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils; // For checking empty strings
+import org.springframework.util.StringUtils;
 import com.clinicapp.backend.dto.auth.RegisterRequest;
 import com.clinicapp.backend.dto.auth.UpdateUserRequestDTO;
 import com.clinicapp.backend.dto.auth.UserResponseDTO;
@@ -22,7 +23,7 @@ import java.util.Objects;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // Needed for encoding password on create/update
+    private final PasswordEncoder passwordEncoder;
 
     private UserResponseDTO mapToResponseDTO(User user) {
         return UserResponseDTO.builder()
@@ -65,15 +66,42 @@ public class UserServiceImpl implements UserService {
     public UserResponseDTO updateUser(Long userId, UpdateUserRequestDTO userUpdates) {
         Objects.requireNonNull(userId, "User ID cannot be null for update");
         Objects.requireNonNull(userUpdates, "User updates cannot be null");
+
         User existingUser = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
-        existingUser.setUsername(userUpdates.getUsername());
-        existingUser.setEmail(userUpdates.getEmail());
-        existingUser.setFirstName(userUpdates.getFirstName());
-        existingUser.setLastName(userUpdates.getLastName());
-        existingUser.setRole(userUpdates.getRole());
-        User updated = userRepository.save(existingUser);
-        return mapToResponseDTO(updated);
+
+        try {
+            if (StringUtils.hasText(userUpdates.getUsername()) && !existingUser.getUsername().equals(userUpdates.getUsername())) {
+                userRepository.findByUsername(userUpdates.getUsername()).ifPresent(u -> {
+                    throw new BadRequestException("Username already exists: " + userUpdates.getUsername());
+                });
+                existingUser.setUsername(userUpdates.getUsername());
+            }
+
+            if (StringUtils.hasText(userUpdates.getEmail()) && !existingUser.getEmail().equals(userUpdates.getEmail())) {
+                userRepository.findByEmail(userUpdates.getEmail()).ifPresent(u -> {
+                    throw new BadRequestException("Email already exists: " + userUpdates.getEmail());
+                });
+                existingUser.setEmail(userUpdates.getEmail());
+            }
+
+            if (StringUtils.hasText(userUpdates.getFirstName())) {
+                existingUser.setFirstName(userUpdates.getFirstName());
+            }
+
+            if (StringUtils.hasText(userUpdates.getLastName())) {
+                existingUser.setLastName(userUpdates.getLastName());
+            }
+
+            if (userUpdates.getRole() != null) {
+                existingUser.setRole(userUpdates.getRole());
+            }
+
+            User updated = userRepository.save(existingUser);
+            return mapToResponseDTO(updated);
+        } catch (DataIntegrityViolationException e) {
+            throw new BadRequestException("Failed to update user due to data integrity violation. The username or email may already be in use.");
+        }
     }
 
     @Override

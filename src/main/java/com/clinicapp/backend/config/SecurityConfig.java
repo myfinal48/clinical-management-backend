@@ -1,6 +1,5 @@
 package com.clinicapp.backend.config;
 
-import com.clinicapp.backend.model.security.Role;
 import org.springframework.core.env.Environment;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.clinicapp.backend.service.security.UserDetailsServiceImpl;
@@ -20,14 +19,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration; // Import CORS config
-import org.springframework.web.cors.CorsConfigurationSource; // Import CORS source
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource; // Import CORS source implementation
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays; // Import Arrays for list creation
-import java.util.List; // Import List
+import java.util.Arrays;
+import java.util.List;
 
-import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS; // For JWT
+import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 @Configuration
 @EnableWebSecurity
@@ -41,37 +40,32 @@ public class SecurityConfig {
     @Autowired
     private Environment env;
 
-    // Define constants for Swagger paths
     private static final String[] SWAGGER_WHITELIST = {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html"
     };
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Enable and configure CORS
-                .csrf(AbstractHttpConfigurer::disable) // Disable CSRF (common for stateless APIs)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll() // Allow auth endpoints
+                        .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(SWAGGER_WHITELIST).permitAll()
-                        .requestMatchers("/ws/**").permitAll() // Allow WebSocket handshake/SockJS endpoint
+                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/ws-chat/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Explicitly allow ADMIN access to user endpoints here for diagnostics (Can be
-                        // removed if @PreAuthorize works)
                         .requestMatchers(HttpMethod.POST, "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/chat/**").authenticated()
-                        .anyRequest().authenticated() // Require authentication for all other requests
+                        .anyRequest().authenticated()
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS)) // Use stateless sessions for
-                                                                                        // JWT
-                .authenticationProvider(authenticationProvider()) // Set the custom authentication provider
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // Add JWT filter before
-                                                                                             // standard auth filter
+                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -79,50 +73,39 @@ public class SecurityConfig {
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService); // Set the custom user details service
-        authProvider.setPasswordEncoder(passwordEncoder()); // Set the password encoder
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager(); // Standard way to get the AuthenticationManager
+        return config.getAuthenticationManager();
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(); // Use BCrypt for password hashing
+        return new BCryptPasswordEncoder();
     }
 
-     // --- CORS Configuration Bean ---
-     @Bean
-     public CorsConfigurationSource corsConfigurationSource() {
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
          CorsConfiguration configuration = new CorsConfiguration();
-         // Allow requests from the Angular frontend origin
-         // Read allowed origins from environment variable
-         String corsAllowedOrigins = env.getProperty("CORS_ALLOWED_ORIGINS",",");
-         List<String> allowedOrigins = Arrays.stream(corsAllowedOrigins.split(",")).map(String::trim).toList();
+         String corsAllowedOrigins = env.getProperty("CORS_ALLOWED_ORIGINS", "");
+         List<String> parsed = Arrays.stream(corsAllowedOrigins.split(","))
+                 .map(String::trim)
+                 .filter(s -> !s.isEmpty())
+                 .toList();
+         List<String> allowedOrigins = parsed.isEmpty()
+                 ? Arrays.asList("http://localhost:3000", "http://127.0.0.1:3000")
+                 : parsed;
          configuration.setAllowedOrigins(allowedOrigins);
-         // Allow common HTTP methods
          configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-         // Allow common headers
          configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
-         // Allow credentials (like cookies or auth tokens)
          configuration.setAllowCredentials(true);
  
          UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-         // Apply this configuration to all paths
          source.registerCorsConfiguration("/**", configuration);
          return source;
      }
-
-    // --- Bean to remove the default ROLE_ prefix for hasRole checks (optional, for
-    // troubleshooting) ---
-    // Re-commented as User model provides ROLE_ prefix correctly.
-    /*
-     * @Bean
-     * public GrantedAuthorityDefaults grantedAuthorityDefaults() {
-     * return new GrantedAuthorityDefaults(""); // Remove the ROLE_ prefix
-     * }
-     */
 }

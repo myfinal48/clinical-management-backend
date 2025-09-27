@@ -1,9 +1,6 @@
 package com.clinicapp.backend.service;
 
-// Core Models (Assuming package structure)
-// Security Models
-import com.clinicapp.backend.model.security.Role; // Import Role
-// Repositories
+import com.clinicapp.backend.model.security.Role;
 import com.clinicapp.backend.repository.core.PatientRepository;
 import com.clinicapp.backend.repository.security.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,13 +12,11 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true) // Most dashboard methods are read-only
+@Transactional(readOnly = true)
 public class DashboardServiceImpl implements DashboardService {
 
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
-
-    // --- Admin Stats ---
 
     @Override
     public long getTotalPatients() {
@@ -30,13 +25,11 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public long getActiveStaffCount() {
-        // Assuming all users in DB are active for now
-        return userRepository.countByRoleIn(List.of(Role.DOCTOR, Role.SECRETARY)); // Requires Role model import
+        return userRepository.countByRoleIn(List.of(Role.DOCTOR, Role.SECRETARY));
     }
 
     @Override
     public Object getStats() {
-        // Retourne des statistiques fictives ou réelles selon le besoin
         return new java.util.HashMap<String, Object>();
     }
 }

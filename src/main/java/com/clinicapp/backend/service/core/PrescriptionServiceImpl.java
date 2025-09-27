@@ -39,7 +39,6 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     @Transactional(readOnly = true)
     public List<Prescription> getAll() {
         List<Prescription> list = prescriptionRepo.findAll();
-        // Force le chargement des champs LOB et des relations nécessaires pour le DTO et le PDF
         list.forEach(p -> {
             p.getDiagnostic();
             p.getRecommandations();
@@ -62,11 +61,10 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     public Prescription getById(Long id) {
         Prescription prescription = prescriptionRepo.findById(id)
                 .orElseThrow(() -> new ApiException(
-                        "Prescription non trouvée avec l'id : " + id,
+                        "Prescription not found with id : " + id,
                         HttpStatus.NOT_FOUND,
                         "PRESCRIPTION_NOT_FOUND"
                 ));
-        // Force le chargement de tous les champs nécessaires pour le PDF
         if (prescription.getPatient() != null) {
             prescription.getPatient().getFirstName();
             prescription.getPatient().getLastName();
@@ -84,10 +82,9 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
     @Override
     public Prescription create(PrescriptionCreationRequestDto dto) {
-        // Validation des entités reliées
         Patient patient = patientRepository.findById(dto.getPatientId())
                 .orElseThrow(() -> new ApiException(
-                        "Patient non trouvé avec l'id : " + dto.getPatientId(),
+                        "Patient not found with id : " + dto.getPatientId(),
                         HttpStatus.NOT_FOUND,
                         "PATIENT_NOT_FOUND"
                 ));
@@ -95,25 +92,22 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         User medecin = medecinRepository.findById(dto.getMedecinId())
                 .filter(user -> user.getRole().equals(Role.DOCTOR))
                 .orElseThrow(() -> new ApiException(
-                        "Médecin non trouvé avec l'id : " + dto.getMedecinId(),
+                        "Medecin not found with id : " + dto.getMedecinId(),
                         HttpStatus.NOT_FOUND,
                         "MEDECIN_NOT_FOUND"
                 ));
-
-        // Conversion DTO -> Entity
         Prescription prescription = PrescriptionMapper.toEntity(dto);
         prescription.setCreatedAt(LocalDateTime.now());
         prescription.setPatient(patient);
         prescription.setMedecin(medecin);
         Prescription saved = prescriptionRepo.save(prescription);
-        // Envoi notification au médecin uniquement
         notificationService.sendNotification(
             NotificationRequestDTO.builder()
                 .type(NotificationType.NEW_PRESCRIPTION)
                 .channel(NotificationChannel.IN_APP)
-                .subject("Nouvelle prescription")
+                .subject("New prescription")
                 .senderId(dto.getMedecinId())
-                .content("Une nouvelle prescription a été créée.")
+                .content("A new prescription has been created.")
                 .userIds(Set.of(dto.getMedecinId()))
                 .build()
         );
@@ -123,21 +117,16 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     @Override
     public Prescription update(Long id, PrescriptionCreationRequestDto dto) {
         Prescription existing = getById(id);
-
-        // Mise à jour partielle (garder les anciennes valeurs si non fournies)
         if(dto.getDiagnostic() != null) {
             existing.setDiagnostic(dto.getDiagnostic());
         }
-
         if(dto.getRecommandations() != null) {
             existing.setRecommandations(dto.getRecommandations());
         }
-
-        // Possible mise à jour des relations si nécessaire
         if(dto.getPatientId() != null) {
             Patient patient = patientRepository.findById(dto.getPatientId())
                     .orElseThrow(() -> new ApiException(
-                            "Patient non trouvé avec l'id : " + dto.getPatientId(),
+                            "Patient not found with id : " + dto.getPatientId(),
                             HttpStatus.NOT_FOUND,
                             "PATIENT_NOT_FOUND"
                     ));
@@ -147,7 +136,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         if(dto.getMedecinId() != null) {
             User medecin = medecinRepository.findById(dto.getMedecinId())
                     .orElseThrow(() -> new ApiException(
-                            "Médecin non trouvé avec l'id : " + dto.getMedecinId(),
+                            "Medecin not found with id : " + dto.getMedecinId(),
                             HttpStatus.NOT_FOUND,
                             "MEDECIN_NOT_FOUND"
                     ));
@@ -161,7 +150,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     public void delete(Long id) {
         if(!prescriptionRepo.existsById(id)) {
             throw new ApiException(
-                    "Prescription non trouvée avec l'id : " + id,
+                    "Prescription not found with id : " + id,
                     HttpStatus.NOT_FOUND,
                     "PRESCRIPTION_NOT_FOUND"
             );

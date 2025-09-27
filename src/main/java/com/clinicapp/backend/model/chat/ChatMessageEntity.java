@@ -1,5 +1,6 @@
 package com.clinicapp.backend.model.chat;
 
+
 import com.clinicapp.backend.model.security.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -48,14 +49,14 @@ public class ChatMessageEntity {
     private LocalDateTime createdAt;
 
     @Builder.Default
-    @Column(name = "is_read")
+    @Column(name = "read", nullable = false)
     private Boolean isRead = false;
 
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
     @Column(name = "reactions")
-    private String reactions; // JSON string: {"👍":2,"❤️":1}
+    private String reactions;
 
     @Builder.Default
     @Column(name = "deleted_by_sender")

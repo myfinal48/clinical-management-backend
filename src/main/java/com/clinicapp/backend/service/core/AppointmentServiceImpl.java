@@ -2,16 +2,16 @@ package com.clinicapp.backend.service.core;
 
 import com.clinicapp.backend.dto.core.AppointmentRequestDTO;
 import com.clinicapp.backend.dto.core.AppointmentResponseDTO;
-import com.clinicapp.backend.model.core.Patient;
+import com.clinicapp.backend.exceptions.BusinessException;
 import com.clinicapp.backend.model.core.Appointment;
+import com.clinicapp.backend.model.core.Patient;
 import com.clinicapp.backend.repository.core.AppointmentRepository;
 import com.clinicapp.backend.repository.core.PatientRepository;
-import com.clinicapp.backend.exceptions.BusinessException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -36,30 +36,33 @@ public class AppointmentServiceImpl implements AppointmentService {
     private static final long CANCELLATION_DEADLINE_HOURS = 24;
     private static final long MIN_BOOKING_HOURS = 2;
     private static final int BUFFER_MINUTES = 5;
+    private static final String DEFAULT_SORT_FIELD = "dateTime";
+    private static final String TIME_START_SUFFIX = "T00:00:00";
+    private static final String TIME_END_SUFFIX = "T23:59:59";
 
     @Override
     @Transactional
     public AppointmentResponseDTO createAppointment(AppointmentRequestDTO dto) {
         if (OffsetDateTime.now().plusHours(MIN_BOOKING_HOURS).isAfter(dto.getDateTime())) {
-            throw new BusinessException("Le rendez-vous doit être réservé au moins 2 heures à l'avance.");
+            throw new BusinessException("The appointment must be reserved at least 2 hours in advance.");
         }
         DayOfWeek day = dto.getDateTime().getDayOfWeek();
         int hour = dto.getDateTime().getHour();
         if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY || hour < 8 || hour > 18) {
-            throw new BusinessException("Aucun rendez-vous n'est autorisé la nuit ou le week-end.");
+            throw new BusinessException("No appointments are allowed at night or on weekends.");
         }
         OffsetDateTime start = dto.getDateTime();
         OffsetDateTime end = start.plusMinutes(getDefaultDuration("GENERAL").toMinutes() + BUFFER_MINUTES);
         if (appointmentRepository.existsByDoctorAndDateTimeOverlap(dto.getDoctorId(), start.toLocalDateTime(), end.toLocalDateTime())) {
-            throw new BusinessException("Le médecin a déjà un rendez-vous à ce créneau.");
+            throw new BusinessException("The doctor already has an appointment at this time.");
         }
         if (!"EMERGENCY".equalsIgnoreCase(dto.getReason()) && appointmentRepository.existsByPatientAndDate(dto.getPatientId(), start.toLocalDate())) {
-            throw new BusinessException("Le patient a déjà un rendez-vous pour ce jour.");
+            throw new BusinessException("The patient already has an appointment for this day.");
         }
         if ("EMERGENCY".equalsIgnoreCase(dto.getReason())) {
             int emergencyHour = start.getHour();
             if (emergencyHour < 5 || emergencyHour >= 23) {
-                throw new BusinessException("Les urgences sont autorisées uniquement entre 5h00 et 23h00.");
+                throw new BusinessException("Emergency appointments are only allowed between 5:00 and 23:00.");
             }
         }
         Appointment appointment = new Appointment();
@@ -75,14 +78,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         Patient patient = patientRepository.findById(dto.getPatientId()).orElseThrow();
         appointment.setPatient(patient);
         AppointmentResponseDTO response = toResponseDTO(appointmentRepository.save(appointment));
-        // Envoi notification au médecin uniquement
         notificationService.sendNotification(
             NotificationRequestDTO.builder()
                 .type(NotificationType.NEW_APPOINTMENT)
                 .channel(NotificationChannel.IN_APP)
-                .subject("Nouveau rendez-vous")
+                .subject("New appointment")
                 .senderId(dto.getPatientId())
-                .content("Un nouveau rendez-vous a été créé.")
+                .content("A new appointment has been created.")
                 .userIds(Set.of(Long.valueOf(dto.getDoctorId())))
                 .build()
         );
@@ -96,8 +98,33 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public Page<AppointmentResponseDTO> listAppointments(Pageable pageable) {
+        if (pageable.getSort().isUnsorted() || hasInvalidSort(pageable)) {
+            pageable = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(), 
+                pageable.getPageSize(), 
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, DEFAULT_SORT_FIELD)
+            );
+        }
         Page<Appointment> page = appointmentRepository.findAll(pageable);
         return page.map(this::toResponseDTO);
+    }
+    
+    private boolean hasInvalidSort(Pageable pageable) {
+        try {
+            for (org.springframework.data.domain.Sort.Order order : pageable.getSort()) {
+                String property = order.getProperty();
+                if (!isValidSortField(property)) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+    
+    private boolean isValidSortField(String field) {
+        return java.util.Set.of("id", DEFAULT_SORT_FIELD, "reason", "doctor", "room", "status").contains(field);
     }
 
     @Override
@@ -162,7 +189,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         return dto;
     }
 
-    // Durée par défaut selon le type de consultation
     private Duration getDefaultDuration(String consultationType) {
         return switch (consultationType) {
             case "CONTROL" -> Duration.ofMinutes(15);
@@ -172,7 +198,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         };
     }
 
-    // Proposer des créneaux alternatifs en cas de conflit
     @Override
     public List<java.time.OffsetDateTime> findAlternativeSlots(String doctor, java.time.OffsetDateTime desiredTime) {
         java.time.Duration duration = getDefaultDuration("GENERAL");
@@ -191,31 +216,56 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, Pageable pageable) {
-        Page<Appointment> page;
-        if (doctor != null && date != null) {
-            LocalDateTime start = LocalDateTime.parse(date + "T00:00:00");
-            LocalDateTime end = LocalDateTime.parse(date + "T23:59:59");
-            page = appointmentRepository.findByDoctorAndDateTimeBetween(doctor, start, end, pageable);
-        } else if (room != null && date != null) {
-            LocalDateTime start = LocalDateTime.parse(date + "T00:00:00");
-            LocalDateTime end = LocalDateTime.parse(date + "T23:59:59");
-            page = appointmentRepository.findByRoomAndDateTimeBetween(room, start, end, pageable);
-        } else {
-            page = appointmentRepository.findAll(pageable);
+    public Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, String status, Pageable pageable) {
+        if (pageable.getSort().isUnsorted() || hasInvalidSort(pageable)) {
+            pageable = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(), 
+                pageable.getPageSize(), 
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, DEFAULT_SORT_FIELD)
+            );
         }
+        
+        Page<Appointment> page;
+        
+        try {
+            // Handle different filter combinations
+            if (doctor != null && date != null) {
+                LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
+                LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
+                page = appointmentRepository.findByDoctorAndDateTimeBetween(doctor, start, end, pageable);
+            } else if (room != null && date != null) {
+                LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
+                LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
+                page = appointmentRepository.findByRoomAndDateTimeBetween(room, start, end, pageable);
+            } else if (doctor != null) {
+                if (doctor.trim().isEmpty()) {
+                    throw new BusinessException("Doctor parameter cannot be empty");
+                }
+                page = appointmentRepository.findByDoctor(doctor, pageable);
+            } else if (room != null) {
+                page = appointmentRepository.findByRoom(room, pageable);
+            } else if (date != null) {
+                LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
+                LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
+                page = appointmentRepository.findByDateTimeBetween(start, end, pageable);
+            } else if (status != null) {
+                try {
+                    Appointment.Status statusEnum = Appointment.Status.valueOf(status.toUpperCase());
+                    page = appointmentRepository.findByStatus(statusEnum, pageable);
+                } catch (IllegalArgumentException e) {
+                    page = appointmentRepository.findAll(pageable);
+                }
+            } else {
+                page = appointmentRepository.findAll(pageable);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            page = Page.empty(pageable);
+        }
+        
         return page.map(this::toResponseDTO);
     }
 
-    @Override
-    public List<AppointmentResponseDTO> listAppointments() {
-        throw new UnsupportedOperationException("Use the paginated version listAppointments(Pageable pageable)");
-    }
-
-    @Override
-    public List<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room) {
-        throw new UnsupportedOperationException("Use the paginated version listAppointmentsFiltered(String, String, String, Pageable)");
-    }
 
     @Override
     public AppointmentResponseDTO markAsCompleted(Long id) {
@@ -224,4 +274,4 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointmentRepository.save(appointment);
         return toResponseDTO(appointment);
     }
-} 
+}
