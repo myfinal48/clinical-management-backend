@@ -2,6 +2,7 @@ package com.clinicapp.backend.controller.core;
 
 import com.clinicapp.backend.dto.core.AppointmentRequestDTO;
 import com.clinicapp.backend.dto.core.AppointmentResponseDTO;
+import com.clinicapp.backend.dto.core.TimeSlotConflictDTO;
 import com.clinicapp.backend.model.core.Appointment;
 import com.clinicapp.backend.service.core.AppointmentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -168,6 +169,26 @@ public class AppointmentController {
             @RequestParam String dateTime
     ) {
         return appointmentService.findAlternativeSlots(doctor, OffsetDateTime.parse(dateTime));
+    }
+
+    /**
+     * Checks for time slot conflicts for a given doctor and dateTime.
+     *
+     * @param doctor The doctor ID
+     * @param dateTime The desired date and time in ISO format
+     * @param excludeId Optional appointment ID to exclude (for updates)
+     * @return Conflict information including any conflicting appointments
+     */
+    @Operation(summary = "Check time slot conflicts. Roles: SECRETARY, DOCTOR")
+    @PreAuthorize("hasAnyRole('SECRETARY', 'DOCTOR')")
+    @GetMapping("/check-conflict")
+    public ResponseEntity<TimeSlotConflictDTO> checkTimeSlotConflict(
+            @RequestParam String doctor,
+            @RequestParam String dateTime,
+            @RequestParam(required = false) Long excludeId
+    ) {
+        TimeSlotConflictDTO result = appointmentService.checkTimeSlotConflict(doctor, OffsetDateTime.parse(dateTime), excludeId);
+        return ResponseEntity.ok(result);
     }
 
     /**

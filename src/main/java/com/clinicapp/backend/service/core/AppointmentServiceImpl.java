@@ -2,29 +2,29 @@ package com.clinicapp.backend.service.core;
 
 import com.clinicapp.backend.dto.core.AppointmentRequestDTO;
 import com.clinicapp.backend.dto.core.AppointmentResponseDTO;
+import com.clinicapp.backend.dto.core.TimeSlotConflictDTO;
 import com.clinicapp.backend.exceptions.BusinessException;
 import com.clinicapp.backend.model.core.Appointment;
 import com.clinicapp.backend.model.core.Patient;
 import com.clinicapp.backend.repository.core.AppointmentRepository;
 import com.clinicapp.backend.repository.core.PatientRepository;
+import com.clinicapp.backend.service.notification.NotificationService;
+import com.clinicapp.backend.dto.notification.NotificationRequestDTO;
+import com.clinicapp.backend.model.notification.NotificationType;
+import com.clinicapp.backend.model.notification.NotificationChannel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.DayOfWeek;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.ArrayList;
-import com.clinicapp.backend.service.notification.NotificationService;
-import com.clinicapp.backend.dto.notification.NotificationRequestDTO;
-import com.clinicapp.backend.model.notification.NotificationType;
-import com.clinicapp.backend.model.notification.NotificationChannel;
 import java.util.Set;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -128,6 +128,56 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    public Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, String status, Pageable pageable) {
+        if (pageable.getSort().isUnsorted() || hasInvalidSort(pageable)) {
+            pageable = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(), 
+                pageable.getPageSize(), 
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, DEFAULT_SORT_FIELD)
+            );
+        }
+
+        Page<Appointment> page;
+
+        try {
+            if (doctor != null && date != null) {
+                LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
+                LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
+                page = appointmentRepository.findByDoctorAndDateTimeBetween(doctor, start, end, pageable);
+            } else if (room != null && date != null) {
+                LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
+                LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
+                page = appointmentRepository.findByRoomAndDateTimeBetween(room, start, end, pageable);
+            } else if (doctor != null) {
+                if (doctor.trim().isEmpty()) {
+                    throw new BusinessException("Doctor parameter cannot be empty");
+                }
+                page = appointmentRepository.findByDoctor(doctor, pageable);
+            } else if (room != null) {
+                page = appointmentRepository.findByRoom(room, pageable);
+            } else if (date != null) {
+                LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
+                LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
+                page = appointmentRepository.findByDateTimeBetween(start, end, pageable);
+            } else if (status != null) {
+                try {
+                    Appointment.Status statusEnum = Appointment.Status.valueOf(status.toUpperCase());
+                    page = appointmentRepository.findByStatus(statusEnum, pageable);
+                } catch (IllegalArgumentException e) {
+                    page = appointmentRepository.findAll(pageable);
+                }
+            } else {
+                page = appointmentRepository.findAll(pageable);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            page = Page.empty(pageable);
+        }
+        
+        return page.map(this::toResponseDTO);
+    }
+
+    @Override
     @Transactional
     public AppointmentResponseDTO updateAppointment(Long id, AppointmentRequestDTO dto) {
         Appointment appointment = appointmentRepository.findById(id).orElseThrow();
@@ -216,54 +266,26 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, String status, Pageable pageable) {
-        if (pageable.getSort().isUnsorted() || hasInvalidSort(pageable)) {
-            pageable = org.springframework.data.domain.PageRequest.of(
-                pageable.getPageNumber(), 
-                pageable.getPageSize(), 
-                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, DEFAULT_SORT_FIELD)
-            );
-        }
-        
-        Page<Appointment> page;
-        
-        try {
-            // Handle different filter combinations
-            if (doctor != null && date != null) {
-                LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
-                LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
-                page = appointmentRepository.findByDoctorAndDateTimeBetween(doctor, start, end, pageable);
-            } else if (room != null && date != null) {
-                LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
-                LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
-                page = appointmentRepository.findByRoomAndDateTimeBetween(room, start, end, pageable);
-            } else if (doctor != null) {
-                if (doctor.trim().isEmpty()) {
-                    throw new BusinessException("Doctor parameter cannot be empty");
-                }
-                page = appointmentRepository.findByDoctor(doctor, pageable);
-            } else if (room != null) {
-                page = appointmentRepository.findByRoom(room, pageable);
-            } else if (date != null) {
-                LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
-                LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
-                page = appointmentRepository.findByDateTimeBetween(start, end, pageable);
-            } else if (status != null) {
-                try {
-                    Appointment.Status statusEnum = Appointment.Status.valueOf(status.toUpperCase());
-                    page = appointmentRepository.findByStatus(statusEnum, pageable);
-                } catch (IllegalArgumentException e) {
-                    page = appointmentRepository.findAll(pageable);
-                }
-            } else {
-                page = appointmentRepository.findAll(pageable);
+    public TimeSlotConflictDTO checkTimeSlotConflict(String doctor, OffsetDateTime desiredTime, Long excludeId) {
+        Duration duration = getDefaultDuration("GENERAL");
+        LocalDateTime start = desiredTime.toLocalDateTime();
+        LocalDateTime end = start.plus(duration).plusMinutes(BUFFER_MINUTES);
+        List<Appointment> potential = appointmentRepository.findByDoctorAndDateTimeBetween(doctor, start, end);
+        List<AppointmentResponseDTO> conflicts = new ArrayList<>();
+        for (Appointment a : potential) {
+            if (a.getStatus() == Appointment.Status.CANCELLED
+                    || a.getStatus() == Appointment.Status.LATE_CANCELLED
+                    || a.getStatus() == Appointment.Status.CLINIC_CANCELLED) {
+                continue;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            page = Page.empty(pageable);
+            if (excludeId != null && a.getId() != null && a.getId().equals(excludeId)) {
+                continue;
+            }
+            conflicts.add(toResponseDTO(a));
         }
-        
-        return page.map(this::toResponseDTO);
+        boolean hasConflict = !conflicts.isEmpty();
+        String message = hasConflict ? "Conflicting appointments found in the selected time window." : "No conflict detected.";
+        return new TimeSlotConflictDTO(hasConflict, message, conflicts);
     }
 
 
