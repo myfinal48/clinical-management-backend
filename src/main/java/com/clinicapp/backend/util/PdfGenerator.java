@@ -278,12 +278,10 @@ public class PdfGenerator {
         spacer.setSpacingAfter(20f);
         document.add(spacer);
         
-        // Main title
         Paragraph title = new Paragraph("FACTURE", TITLE_FONT);
         title.setAlignment(Element.ALIGN_CENTER);
         document.add(title);
         
-        // Invoice number
         Paragraph invoiceNumber = new Paragraph("N° " + invoice.getId(), HEADER_FONT);
         invoiceNumber.setAlignment(Element.ALIGN_CENTER);
         invoiceNumber.setSpacingAfter(30f);
@@ -296,11 +294,9 @@ public class PdfGenerator {
         infoTable.setSpacingBefore(20f);
         infoTable.setSpacingAfter(20f);
 
-        // Patient information
         addTableHeaderCell(infoTable, "INFORMATIONS PATIENT");
         addTableHeaderCell(infoTable, "INFORMATIONS FACTURE");
         
-        // Patient
         if (invoice.getPatient() != null) {
             String firstName = invoice.getPatient().getFirstName();
             String lastName = invoice.getPatient().getLastName();
@@ -331,8 +327,8 @@ public class PdfGenerator {
             if (invoice.isPaid() && invoice.getDatePaid() != null) {
                 addTableCell(infoTable, "Date de paiement: " + DATE_FORMATTER.format(invoice.getDatePaid()));
             }
-        }
 
+        }
         document.add(infoTable);
     }
 
@@ -340,19 +336,18 @@ public class PdfGenerator {
         if (invoice.getDescription() != null && !invoice.getDescription().trim().isEmpty()) {
             addSectionTitle(document, "DÉTAIL DES SERVICES");
             
-            PdfPTable detailsTable = new PdfPTable(2);
+            PdfPTable detailsTable = new PdfPTable(1);
             detailsTable.setWidthPercentage(100);
             detailsTable.setSpacingBefore(10f);
             detailsTable.setSpacingAfter(20f);
 
             addTableHeaderCell(detailsTable, "Description");
+            detailsTable.setHeaderRows(1);
 
-            // Split description into lines if it contains line breaks
             String[] lines = invoice.getDescription().split("\n");
             for (String line : lines) {
                 if (!line.trim().isEmpty()) {
                     addTableCell(detailsTable, line.trim());
-                    addTableCell(detailsTable, "");
                 }
             }
 
@@ -367,7 +362,6 @@ public class PdfGenerator {
         summaryTable.setSpacingBefore(20f);
         summaryTable.setSpacingAfter(20f);
 
-        // Amount including tax (for now, we consider the amount includes tax)
         addTableHeaderCell(summaryTable, "Montant");
         addTableCell(summaryTable, String.format("%.2f Fcfa", invoice.getAmount()));
 
@@ -378,7 +372,6 @@ public class PdfGenerator {
         Paragraph footer = new Paragraph();
         footer.setSpacingBefore(40f);
         
-        // Payment terms
         Paragraph conditions = new Paragraph("Conditions de paiement:", HEADER_FONT);
         conditions.setSpacingAfter(10f);
         footer.add(conditions);
@@ -392,7 +385,6 @@ public class PdfGenerator {
         );
         footer.add(conditionsText);
         
-        // Signature
         Paragraph signature = new Paragraph("\n\nSignature et cachet de l'établissement :", HEADER_FONT);
         signature.setAlignment(Element.ALIGN_RIGHT);
         footer.add(signature);
