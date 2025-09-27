@@ -5,7 +5,6 @@ import com.clinicapp.backend.dto.notification.NotificationRequestDTO;
 import com.clinicapp.backend.exceptions.ResourceNotFoundException;
 import com.clinicapp.backend.mapper.notification.NotificationMapper;
 import com.clinicapp.backend.model.notification.Notification;
-import com.clinicapp.backend.model.notification.NotificationChannel;
 import com.clinicapp.backend.model.notification.NotificationStatus;
 import com.clinicapp.backend.model.notification.UserNotification;
 import com.clinicapp.backend.model.security.User;
@@ -15,6 +14,9 @@ import com.clinicapp.backend.repository.security.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,12 +37,14 @@ public class NotificationServiceImpl implements NotificationService {
     private final SimpMessagingTemplate messagingTemplate;
     private final UserNotificationRepository userNotificationRepository;
 
+    private static final String NOTIF_NOT_FOUND = "Notification not found with id: ";
+
     @Override
     @Transactional(readOnly = true)
     public NotificationDTO getNotificationById(Long notificationId) {
         return notificationRepository.findById(notificationId)
                 .map(NotificationMapper::toDto)
-                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + notificationId));
+                .orElseThrow(() -> new ResourceNotFoundException(NOTIF_NOT_FOUND + notificationId));
     }
 
     @Override
@@ -48,14 +52,14 @@ public class NotificationServiceImpl implements NotificationService {
     public List<NotificationDTO> getAllNotifications() {
         return notificationRepository.findAll().stream()
                 .map(NotificationMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     @Transactional
     public void deleteNotification(Long notificationId) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + notificationId));
+                .orElseThrow(() -> new ResourceNotFoundException(NOTIF_NOT_FOUND + notificationId));
 
         notificationRepository.delete(notification);
 
@@ -81,7 +85,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         notification = notificationRepository.save(notification);
 
-        handleChannelDelivery(notification, request.getChannel());
+        handleChannelDelivery(notification);
         return NotificationMapper.toDto(notification);
     }
 
@@ -113,7 +117,7 @@ public class NotificationServiceImpl implements NotificationService {
         return notificationRepository.findByUserIdAndStatus(userId, status)
                 .stream()
                 .map(NotificationMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Set<User> getRecipients(NotificationRequestDTO request) {
@@ -124,7 +128,7 @@ public class NotificationServiceImpl implements NotificationService {
         return new HashSet<>(userRepository.findByRole(request.getTargetRole()));
     }
 
-    private void handleChannelDelivery(Notification notification, NotificationChannel channel) {
+    private void handleChannelDelivery(Notification notification) {
         notification.getUserNotifications().forEach(un -> {
             try {
                 messagingTemplate.convertAndSend(
@@ -163,7 +167,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional
     public NotificationDTO updateNotification(Long notificationId, NotificationRequestDTO request) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + notificationId));
+                .orElseThrow(() -> new ResourceNotFoundException(NOTIF_NOT_FOUND + notificationId));
         
         if (request.getType() != null) notification.setType(request.getType());
         if (request.getSubject() != null) notification.setSubject(request.getSubject());
@@ -200,7 +204,7 @@ public class NotificationServiceImpl implements NotificationService {
         return userNotificationRepository.findByUserIdAndRead(userId, !unreadOnly)
                 .stream()
                 .map(un -> NotificationMapper.toDto(un.getNotification(), un))
-                .collect(Collectors.toList());
+                .toList();
     }
     
     @Override
@@ -238,5 +242,110 @@ public class NotificationServiceImpl implements NotificationService {
                         )
                 )
                         );
-}
+    }
+    
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResourceNotFoundException("User not authenticated");
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User u && u.getId() != null) {
+            return u.getId();
+        }
+        if (principal instanceof UserDetails ud) {
+            String usernameOrEmail = ud.getUsername();
+            return userRepository.findByEmail(usernameOrEmail)
+                    .map(User::getId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + usernameOrEmail));
+        }
+        if (principal instanceof String s && !"anonymousUser".equals(s)) {
+            String usernameOrEmail = s;
+            return userRepository.findByEmail(usernameOrEmail)
+                    .map(User::getId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + usernameOrEmail));
+        }
+
+        throw new ResourceNotFoundException("User not authenticated");
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<NotificationDTO> getCurrentUserNotifications() {
+        Long userId = getCurrentUserId();
+        return userNotificationRepository.findByUserId(userId)
+                .stream()
+                .map(un -> NotificationMapper.toDto(un.getNotification(), un))
+                .toList();
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public Long getCurrentUserUnreadCount() {
+        Long userId = getCurrentUserId();
+        return getUnreadNotificationsCount(userId);
+    }
+    
+    @Override
+    @Transactional
+    public void markAsReadForCurrentUser(Long notificationId) {
+        Long userId = getCurrentUserId();
+        List<UserNotification> userNotifications = userNotificationRepository
+                .findByNotificationIdInAndUserId(List.of(notificationId), userId);
+
+        userNotifications.forEach(un -> {
+            un.setRead(true);
+            un.setReadAt(LocalDateTime.now());
+            un.getNotification().setStatus(NotificationStatus.READ);
+        });
+
+        userNotificationRepository.saveAll(userNotifications);
+    }
+    
+    @Override
+    @Transactional
+    public void markAllAsReadForCurrentUser() {
+        Long userId = getCurrentUserId();
+        List<UserNotification> unreadNotifications = userNotificationRepository.findByUserIdAndRead(userId, false);
+        
+        unreadNotifications.forEach(un -> {
+            un.setRead(true);
+            un.setReadAt(LocalDateTime.now());
+            un.getNotification().setStatus(NotificationStatus.READ);
+        });
+        
+        userNotificationRepository.saveAll(unreadNotifications);
+    }
+    
+    @Override
+    @Transactional
+    public void archiveNotificationForCurrentUser(Long notificationId) {
+        Long userId = getCurrentUserId();
+        List<UserNotification> userNotifications = userNotificationRepository
+                .findByNotificationIdInAndUserId(List.of(notificationId), userId);
+
+        userNotifications.forEach(un -> {
+            un.setRead(true);
+            un.setReadAt(LocalDateTime.now());
+            un.getNotification().setStatus(NotificationStatus.ARCHIVED);
+        });
+
+        userNotificationRepository.saveAll(userNotifications);
+    }
+    
+    @Override
+    @Transactional
+    public void archiveAllNotificationsForCurrentUser() {
+        Long userId = getCurrentUserId();
+        List<UserNotification> userNotifications = userNotificationRepository.findByUserId(userId);
+        
+        userNotifications.forEach(un -> {
+            un.setRead(true);
+            un.setReadAt(LocalDateTime.now());
+            un.getNotification().setStatus(NotificationStatus.ARCHIVED);
+        });
+        
+        userNotificationRepository.saveAll(userNotifications);
+    }
 }

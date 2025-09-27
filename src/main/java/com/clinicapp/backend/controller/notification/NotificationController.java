@@ -160,4 +160,68 @@ public class NotificationController {
     public ResponseEntity<Long> getUnreadNotificationsCount(@PathVariable Long userId) {
         return ResponseEntity.ok(notificationService.getUnreadNotificationsCount(userId));
     }
+    
+    @Operation(
+            summary = "Get current user notifications",
+            description = "Retrieve notifications for the authenticated user"
+    )
+    @ApiResponse(responseCode = "200", description = "User notifications retrieved successfully")
+    @GetMapping("/my-notifications")
+    public ResponseEntity<List<NotificationDTO>> getMyNotifications() {
+        return ResponseEntity.ok(notificationService.getCurrentUserNotifications());
+    }
+    
+    @Operation(
+            summary = "Get current user unread count",
+            description = "Get unread notifications count for the authenticated user"
+    )
+    @ApiResponse(responseCode = "200", description = "Unread count retrieved successfully")
+    @GetMapping("/unread-count")
+    public ResponseEntity<Long> getMyUnreadCount() {
+        return ResponseEntity.ok(notificationService.getCurrentUserUnreadCount());
+    }
+    
+    @Operation(
+            summary = "Mark notification as read",
+            description = "Mark a single notification as read for the current user"
+    )
+    @ApiResponse(responseCode = "200", description = "Notification marked as read")
+    @PatchMapping("/{id}/mark-read")
+    public ResponseEntity<Void> markAsRead(@PathVariable Long id) {
+        notificationService.markAsReadForCurrentUser(id);
+        return ResponseEntity.ok().build();
+    }
+    
+    @Operation(
+            summary = "Mark all as read",
+            description = "Mark all notifications as read for the current user"
+    )
+    @ApiResponse(responseCode = "200", description = "All notifications marked as read")
+    @PatchMapping("/mark-all-read")
+    public ResponseEntity<Void> markAllAsRead() {
+        notificationService.markAllAsReadForCurrentUser();
+        return ResponseEntity.ok().build();
+    }
+    
+    @Operation(
+            summary = "Archive notification",
+            description = "Archive a single notification for the current user"
+    )
+    @ApiResponse(responseCode = "200", description = "Notification archived")
+    @PatchMapping("/{id}/archive")
+    public ResponseEntity<Void> archiveMyNotification(@PathVariable Long id) {
+        notificationService.archiveNotificationForCurrentUser(id);
+        return ResponseEntity.ok().build();
+    }
+    
+    @Operation(
+            summary = "Archive all notifications",
+            description = "Archive all notifications for the current user"
+    )
+    @ApiResponse(responseCode = "200", description = "All notifications archived")
+    @PatchMapping("/archive-all")
+    public ResponseEntity<Void> archiveAllNotifications() {
+        notificationService.archiveAllNotificationsForCurrentUser();
+        return ResponseEntity.ok().build();
+    }
 }

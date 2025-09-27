@@ -19,4 +19,12 @@ public interface NotificationService {
     List<NotificationDTO> getUserNotifications(Long userId, boolean unreadOnly);
     List<NotificationDTO> getNotificationsByStatus(Long userId, NotificationStatus status);
     Long getUnreadNotificationsCount(Long userId);
+    
+    // Current user methods
+    List<NotificationDTO> getCurrentUserNotifications();
+    Long getCurrentUserUnreadCount();
+    void markAsReadForCurrentUser(Long notificationId);
+    void markAllAsReadForCurrentUser();
+    void archiveNotificationForCurrentUser(Long notificationId);
+    void archiveAllNotificationsForCurrentUser();
 }
