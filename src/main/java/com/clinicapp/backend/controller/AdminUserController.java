@@ -74,15 +74,13 @@ public class AdminUserController {
 
     /**
      * Updates an existing user by their ID.
-     * Accessible only by ADMIN role.
-     *
      * @param id The ID of the user to update.
      * @param user The updated user data.
      * @return The updated user.
      */
     @Operation(summary = "Update a user by ID. Role: ADMIN.")
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id, @ModelAttribute UpdateUserRequestDTO user) {
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id, @RequestBody UpdateUserRequestDTO user) {
         UserResponseDTO updatedUser = userService.updateUser(id, user);
         return ResponseEntity.ok(updatedUser);
     }
@@ -91,7 +89,6 @@ public class AdminUserController {
      * Deletes a user by their ID.
      * Accessible only by ADMIN role.
      *
-     * @param id The ID of the user to delete.
      */
     @Operation(summary = "Delete a user by ID. Role: ADMIN.")
     @DeleteMapping("/{id}")
