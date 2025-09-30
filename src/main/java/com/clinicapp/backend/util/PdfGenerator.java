@@ -173,21 +173,45 @@ public class PdfGenerator {
     }
 
     private void addPatientInfo(Document document, Prescription p) throws DocumentException {
-        if (p == null || p.getPatient() == null || p.getMedecin() != null) return;
+        if (p == null || p.getPatient() == null || p.getMedecin() == null) return;
         PdfPTable table = new PdfPTable(2);
         table.setWidthPercentage(100);
         table.setSpacingBefore(20f);
 
-        addTableHeaderCell(table, "Patient");
-        addTableCell(table, p.getPatient().getFirstName() + " " + p.getPatient().getLastName());
-        addTableHeaderCell(table, "Date de naissance");
-        addTableCell(table, p.getPatient().getDateOfBirth() != null ? p.getPatient().getDateOfBirth().toString() : "-");
-        addTableHeaderCell(table, "Genre");
-        addTableCell(table, p.getPatient().getGender() != null ? p.getPatient().getGender().toString() : "-");
-        addTableHeaderCell(table, "Médecin prescripteur");
-        addTableCell(table, p.getMedecin().getFirstName() + " " + p.getMedecin().getLastName());
-        addTableHeaderCell(table, "Date de prescription");
-        addTableCell(table, p.getCreatedAt() != null ? DATE_FORMATTER.format(p.getCreatedAt()) : "-");
+        addTableHeaderCell(table, "INFORMATIONS PATIENT");
+        addTableHeaderCell(table, "INFORMATIONS PRESCRIPTEUR");
+
+        String patientFirst = p.getPatient().getFirstName();
+        String patientLast = p.getPatient().getLastName();
+        String patientName = ((patientFirst != null ? patientFirst : "") +
+                ((patientFirst != null && patientLast != null && !patientFirst.isBlank() && !patientLast.isBlank()) ? " " : "") +
+                (patientLast != null ? patientLast : "")).trim();
+        if (patientName.isEmpty()) patientName = "N/A";
+
+        String doctorFirst = p.getMedecin().getFirstName();
+        String doctorLast = p.getMedecin().getLastName();
+        String doctorName = ((doctorFirst != null ? doctorFirst : "") +
+                ((doctorFirst != null && doctorLast != null && !doctorFirst.isBlank() && !doctorLast.isBlank()) ? " " : "") +
+                (doctorLast != null ? doctorLast : "")).trim();
+        if (doctorName.isEmpty()) doctorName = "N/A";
+
+        addTableCell(table, "Nom: " + patientName);
+        addTableCell(table, "Médecin: " + doctorName);
+
+        addTableCell(table, "Date de naissance: " + (p.getPatient().getDateOfBirth() != null ? p.getPatient().getDateOfBirth().toString() : "-"));
+        addTableCell(table, "Date de prescription: " + (p.getCreatedAt() != null ? DATE_FORMATTER.format(p.getCreatedAt()) : "-"));
+
+        addTableCell(table, "Genre: " + (p.getPatient().getGender() != null ? p.getPatient().getGender().toString() : "-"));
+        addTableCell(table, "Email: " + (p.getMedecin().getEmail() != null ? p.getMedecin().getEmail() : "-"));
+
+        // Patient contact block (multi-line allowed)
+        StringBuilder patientContact = new StringBuilder();
+        if (p.getPatient().getAddress() != null) patientContact.append("Adresse: ").append(p.getPatient().getAddress());
+        if (p.getPatient().getPhoneNumber() != null) patientContact.append(patientContact.length() > 0 ? "\n" : "").append("Téléphone: ").append(p.getPatient().getPhoneNumber());
+        if (p.getPatient().getEmail() != null) patientContact.append(patientContact.length() > 0 ? "\n" : "").append("Email: ").append(p.getPatient().getEmail());
+        addTableCell(table, patientContact.length() > 0 ? patientContact.toString() : "");
+
+        addTableCell(table, "");
 
         document.add(table);
         document.add(Chunk.NEWLINE);
