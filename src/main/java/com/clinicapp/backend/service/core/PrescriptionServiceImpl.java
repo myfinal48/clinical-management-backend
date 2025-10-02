@@ -39,20 +39,15 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     @Transactional(readOnly = true)
     public List<Prescription> getAll() {
         List<Prescription> list = prescriptionRepo.findAll();
-        list.forEach(p -> {
-            p.getDiagnostic();
-            p.getRecommandations();
-            if (p.getPatient() != null) {
-                p.getPatient().getFirstName();
-                p.getPatient().getLastName();
-                p.getPatient().getGender();
-                p.getPatient().getDateOfBirth();
-            }
-            if (p.getMedecin() != null) {
-                p.getMedecin().getFirstName();
-                p.getMedecin().getLastName();
-            }
-        });
+        hydrateAll(list);
+        return list;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Prescription> getByMedecinId(Long medecinId) {
+        List<Prescription> list = prescriptionRepo.findByMedecin_Id(medecinId);
+        hydrateAll(list);
         return list;
     }
 
@@ -65,18 +60,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
                         HttpStatus.NOT_FOUND,
                         "PRESCRIPTION_NOT_FOUND"
                 ));
-        if (prescription.getPatient() != null) {
-            prescription.getPatient().getFirstName();
-            prescription.getPatient().getLastName();
-            prescription.getPatient().getGender();
-            prescription.getPatient().getDateOfBirth();
-        }
-        if (prescription.getMedecin() != null) {
-            prescription.getMedecin().getFirstName();
-            prescription.getMedecin().getLastName();
-        }
-        prescription.getDiagnostic();
-        prescription.getRecommandations();
+        hydrate(prescription);
         return prescription;
     }
 
@@ -157,4 +141,23 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         }
         prescriptionRepo.deleteById(id);
     }
-} 
+
+    private void hydrateAll(List<Prescription> list) {
+        list.forEach(this::hydrate);
+    }
+
+    private void hydrate(Prescription p) {
+        p.getDiagnostic();
+        p.getRecommandations();
+        if (p.getPatient() != null) {
+            p.getPatient().getFirstName();
+            p.getPatient().getLastName();
+            p.getPatient().getGender();
+            p.getPatient().getDateOfBirth();
+        }
+        if (p.getMedecin() != null) {
+            p.getMedecin().getFirstName();
+            p.getMedecin().getLastName();
+        }
+    }
+}
