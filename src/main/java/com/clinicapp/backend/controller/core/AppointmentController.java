@@ -154,24 +154,6 @@ public class AppointmentController {
     }
 
     /**
-     * Finds alternative appointment slots when the requested time is unavailable.
-     * Searches for nearby available slots for the same doctor.
-     *
-     * @param doctor The doctor ID for whom to find alternative slots
-     * @param dateTime The desired date and time in ISO format
-     * @return List of alternative available time slots
-     */
-    @Operation(summary = "Find alternative appointment slots. Roles: SECRETARY")
-    @PreAuthorize("hasRole('SECRETARY')")
-    @GetMapping("/alternatives")
-    public List<OffsetDateTime> getAlternativeSlots(
-            @RequestParam String doctor,
-            @RequestParam String dateTime
-    ) {
-        return appointmentService.findAlternativeSlots(doctor, OffsetDateTime.parse(dateTime));
-    }
-
-    /**
      * Checks for time slot conflicts for a given doctor and dateTime.
      *
      * @param doctor The doctor ID
