@@ -48,8 +48,7 @@ public class PrescriptionController {
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<List<PrescriptionResponseDto>> getAllPrescriptions() {
-        List<Prescription> prescriptions = prescriptionService.getAll();
-        List<PrescriptionResponseDto> dtos = prescriptions.stream()
+        List<PrescriptionResponseDto> dtos = prescriptionService.getAll().stream()
                 .map(PrescriptionMapper::toDto)
                 .toList();
         return ResponseEntity.ok(dtos);
@@ -66,8 +65,7 @@ public class PrescriptionController {
     @PreAuthorize("hasRole('DOCTOR')")
     @GetMapping("/doctor/{id}")
     public ResponseEntity<List<PrescriptionResponseDto>> getPrescriptionsByDoctor(@PathVariable Long id) {
-        List<Prescription> prescriptions = prescriptionService.getByMedecinId(id);
-        List<PrescriptionResponseDto> dtos = prescriptions.stream()
+        List<PrescriptionResponseDto> dtos = prescriptionService.getByMedecinId(id).stream()
                 .map(PrescriptionMapper::toDto)
                 .toList();
         return ResponseEntity.ok(dtos);
