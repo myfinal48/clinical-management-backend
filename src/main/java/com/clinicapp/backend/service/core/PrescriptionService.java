@@ -11,6 +11,8 @@ public interface PrescriptionService {
     
     Prescription getById(Long id);
     
+    List<Prescription> getByMedecinId(Long medecinId);
+    
     Prescription create(PrescriptionCreationRequestDto dto);
     
     Prescription update(Long id, PrescriptionCreationRequestDto dto);

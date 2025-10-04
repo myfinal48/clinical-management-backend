@@ -48,8 +48,24 @@ public class PrescriptionController {
     @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<List<PrescriptionResponseDto>> getAllPrescriptions() {
-        List<Prescription> prescriptions = prescriptionService.getAll();
-        List<PrescriptionResponseDto> dtos = prescriptions.stream()
+        List<PrescriptionResponseDto> dtos = prescriptionService.getAll().stream()
+                .map(PrescriptionMapper::toDto)
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
+    /**
+     * Retrieves prescriptions authored by a specific doctor (medecin).
+     * Accessible by users with the DOCTOR role.
+     *
+     * @param id The doctor's (medecin) ID.
+     * @return A list of prescriptions for the given doctor.
+     */
+    @Operation(summary = "Get prescriptions by doctor ID. Role: DOCTOR.")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @GetMapping("/doctor/{id}")
+    public ResponseEntity<List<PrescriptionResponseDto>> getPrescriptionsByDoctor(@PathVariable Long id) {
+        List<PrescriptionResponseDto> dtos = prescriptionService.getByMedecinId(id).stream()
                 .map(PrescriptionMapper::toDto)
                 .toList();
         return ResponseEntity.ok(dtos);
