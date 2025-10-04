@@ -129,14 +129,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, String status, Pageable pageable) {
-        if (pageable.getSort().isUnsorted() || hasInvalidSort(pageable)) {
-            pageable = org.springframework.data.domain.PageRequest.of(
-                pageable.getPageNumber(), 
-                pageable.getPageSize(), 
-                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, DEFAULT_SORT_FIELD)
-            );
-        }
-
         Page<Appointment> page;
 
         try {
@@ -170,7 +162,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 page = appointmentRepository.findAll(pageable);
             }
         } catch (Exception e) {
-            e.printStackTrace();
             page = Page.empty(pageable);
         }
         
