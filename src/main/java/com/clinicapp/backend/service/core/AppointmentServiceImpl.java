@@ -150,10 +150,21 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public Page<AppointmentResponseDTO> listAppointmentsFiltered(String doctor, String date, String room, String status, Pageable pageable) {
+        if (pageable.getSort().isUnsorted() || hasInvalidSort(pageable)) {
+            pageable = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(), 
+                pageable.getPageSize(), 
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, DEFAULT_SORT_FIELD)
+            );
+        }
+        
         Page<Appointment> page;
 
         try {
             if (doctor != null && date != null) {
+                if (doctor.trim().isEmpty()) {
+                    throw new BusinessException("Doctor parameter cannot be empty");
+                }
                 LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
                 LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
                 page = appointmentRepository.findByDoctorAndDateTimeBetween(doctor, start, end, pageable);
@@ -183,6 +194,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 page = appointmentRepository.findAll(pageable);
             }
         } catch (Exception e) {
+            System.err.println("Error filtering appointments: " + e.getMessage());
             page = Page.empty(pageable);
         }
         
