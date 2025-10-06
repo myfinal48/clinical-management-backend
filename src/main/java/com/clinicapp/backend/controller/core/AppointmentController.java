@@ -16,7 +16,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 
 /**
  * Controller for managing patient appointments.
@@ -60,9 +59,9 @@ public class AppointmentController {
 
     /**
      * Retrieves a paginated list of appointments with optional filtering.
-     * Can filter by doctor, date, room, or status.
+     * Can filter by doctor (accepts both 'doctor' and 'doctorId'), date, room, or status.
      *
-     * @param doctor Filter by doctor name (optional)
+     * @param doctorId Filter by doctor ID (preferred parameter name)
      * @param date Filter by date in YYYY-MM-DD format (optional)
      * @param room Filter by room (optional)
      * @param status Filter by appointment status (optional)
@@ -73,13 +72,13 @@ public class AppointmentController {
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'SECRETARY')")
     @GetMapping
     public Page<AppointmentResponseDTO> list(
-            @RequestParam(required = false) String doctor,
+            @RequestParam(required = false) String doctorId,
             @RequestParam(required = false) String date,
             @RequestParam(required = false) String room,
             @RequestParam(required = false) String status,
             Pageable pageable) {
-        if (doctor != null || date != null || room != null || status != null) {
-            return appointmentService.listAppointmentsFiltered(doctor, date, room, status, pageable);
+        if (doctorId != null || date != null || room != null || status != null) {
+            return appointmentService.listAppointmentsFiltered(doctorId, date, room, status, pageable);
         }
         return appointmentService.listAppointments(pageable);
     }
@@ -154,27 +153,9 @@ public class AppointmentController {
     }
 
     /**
-     * Finds alternative appointment slots when the requested time is unavailable.
-     * Searches for nearby available slots for the same doctor.
-     *
-     * @param doctor The doctor ID for whom to find alternative slots
-     * @param dateTime The desired date and time in ISO format
-     * @return List of alternative available time slots
-     */
-    @Operation(summary = "Find alternative appointment slots. Roles: SECRETARY")
-    @PreAuthorize("hasRole('SECRETARY')")
-    @GetMapping("/alternatives")
-    public List<OffsetDateTime> getAlternativeSlots(
-            @RequestParam String doctor,
-            @RequestParam String dateTime
-    ) {
-        return appointmentService.findAlternativeSlots(doctor, OffsetDateTime.parse(dateTime));
-    }
-
-    /**
      * Checks for time slot conflicts for a given doctor and dateTime.
      *
-     * @param doctor The doctor ID
+     * @param doctorId The doctor ID (preferred parameter)
      * @param dateTime The desired date and time in ISO format
      * @param excludeId Optional appointment ID to exclude (for updates)
      * @return Conflict information including any conflicting appointments
@@ -183,12 +164,29 @@ public class AppointmentController {
     @PreAuthorize("hasAnyRole('SECRETARY', 'DOCTOR')")
     @GetMapping("/check-conflict")
     public ResponseEntity<TimeSlotConflictDTO> checkTimeSlotConflict(
-            @RequestParam String doctor,
+            @RequestParam String doctorId,
             @RequestParam String dateTime,
             @RequestParam(required = false) Long excludeId
     ) {
-        TimeSlotConflictDTO result = appointmentService.checkTimeSlotConflict(doctor, OffsetDateTime.parse(dateTime), excludeId);
+        TimeSlotConflictDTO result = appointmentService.checkTimeSlotConflict(doctorId, OffsetDateTime.parse(dateTime), excludeId);
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Get appointments for a specific doctor.
+     * Simplified endpoint that accepts doctorId as path variable for better REST design.
+     *
+     * @param doctorId The doctor ID
+     * @param pageable Pagination and sorting information
+     * @return A paginated list of appointments for the doctor
+     */
+    @Operation(summary = "Get appointments for a specific doctor. Roles: ADMIN, DOCTOR, SECRETARY")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'SECRETARY')")
+    @GetMapping("/doctor/{doctorId}")
+    public Page<AppointmentResponseDTO> getAppointmentsByDoctor(
+            @PathVariable String doctorId,
+            Pageable pageable) {
+        return appointmentService.listAppointmentsFiltered(doctorId, null, null, null, pageable);
     }
 
     /**

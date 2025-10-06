@@ -18,9 +18,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.DayOfWeek;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
@@ -39,34 +42,52 @@ public class AppointmentServiceImpl implements AppointmentService {
     private static final String DEFAULT_SORT_FIELD = "dateTime";
     private static final String TIME_START_SUFFIX = "T00:00:00";
     private static final String TIME_END_SUFFIX = "T23:59:59";
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Africa/Douala");
 
     @Override
     @Transactional
     public AppointmentResponseDTO createAppointment(AppointmentRequestDTO dto) {
-        if (OffsetDateTime.now().plusHours(MIN_BOOKING_HOURS).isAfter(dto.getDateTime())) {
+        ZonedDateTime local = dto.getDateTime().atZoneSameInstant(CLINIC_ZONE);
+        ZonedDateTime nowClinic = ZonedDateTime.now(CLINIC_ZONE);
+
+        if (nowClinic.plusHours(MIN_BOOKING_HOURS).isAfter(local)) {
             throw new BusinessException("The appointment must be reserved at least 2 hours in advance.");
         }
-        DayOfWeek day = dto.getDateTime().getDayOfWeek();
-        int hour = dto.getDateTime().getHour();
+
+        DayOfWeek day = local.getDayOfWeek();
+        int hour = local.getHour();
         if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY || hour < 8 || hour > 18) {
             throw new BusinessException("No appointments are allowed at night or on weekends.");
         }
-        OffsetDateTime start = dto.getDateTime();
-        OffsetDateTime end = start.plusMinutes(getDefaultDuration("GENERAL").toMinutes() + BUFFER_MINUTES);
-        if (appointmentRepository.existsByDoctorAndDateTimeOverlap(dto.getDoctorId(), start.toLocalDateTime(), end.toLocalDateTime())) {
+
+        LocalDateTime startLocal = local.toLocalDateTime();
+        LocalDateTime endLocal = startLocal.plusMinutes(getDefaultDuration("GENERAL").toMinutes() + BUFFER_MINUTES);
+        if (appointmentRepository.existsByDoctorAndDateTimeOverlap(dto.getDoctorId(), startLocal, endLocal)) {
             throw new BusinessException("The doctor already has an appointment at this time.");
         }
-        if (!"EMERGENCY".equalsIgnoreCase(dto.getReason()) && appointmentRepository.existsByPatientAndDate(dto.getPatientId(), start.toLocalDate())) {
-            throw new BusinessException("The patient already has an appointment for this day.");
+        if (!"EMERGENCY".equalsIgnoreCase(dto.getReason())) {
+            LocalDate clinicDate = startLocal.toLocalDate();
+            LocalDateTime dayStart = clinicDate.atStartOfDay();
+            LocalDateTime dayEnd = clinicDate.atTime(23, 59, 59);
+            List<Appointment> existingAppointments = appointmentRepository.findByPatientIdAndDateTimeBetween(
+                dto.getPatientId(), dayStart, dayEnd
+            );
+            boolean hasNonCancelledAppointment = existingAppointments.stream()
+                .anyMatch(a -> a.getStatus() != Appointment.Status.CANCELLED 
+                    && a.getStatus() != Appointment.Status.LATE_CANCELLED 
+                    && a.getStatus() != Appointment.Status.CLINIC_CANCELLED);
+            if (hasNonCancelledAppointment) {
+                throw new BusinessException("The patient already has an appointment for this day.");
+            }
         }
         if ("EMERGENCY".equalsIgnoreCase(dto.getReason())) {
-            int emergencyHour = start.getHour();
+            int emergencyHour = hour;
             if (emergencyHour < 5 || emergencyHour >= 23) {
                 throw new BusinessException("Emergency appointments are only allowed between 5:00 and 23:00.");
             }
         }
         Appointment appointment = new Appointment();
-        appointment.setDateTime(start.toLocalDateTime());
+        appointment.setDateTime(startLocal);
         appointment.setReason(dto.getReason());
         appointment.setDoctor(dto.getDoctorId());
         appointment.setRoom(dto.getRoom());
@@ -136,11 +157,14 @@ public class AppointmentServiceImpl implements AppointmentService {
                 org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, DEFAULT_SORT_FIELD)
             );
         }
-
+        
         Page<Appointment> page;
 
         try {
             if (doctor != null && date != null) {
+                if (doctor.trim().isEmpty()) {
+                    throw new BusinessException("Doctor parameter cannot be empty");
+                }
                 LocalDateTime start = LocalDateTime.parse(date + TIME_START_SUFFIX);
                 LocalDateTime end = LocalDateTime.parse(date + TIME_END_SUFFIX);
                 page = appointmentRepository.findByDoctorAndDateTimeBetween(doctor, start, end, pageable);
@@ -170,7 +194,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 page = appointmentRepository.findAll(pageable);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Error filtering appointments: " + e.getMessage());
             page = Page.empty(pageable);
         }
         
@@ -249,26 +273,10 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public List<java.time.OffsetDateTime> findAlternativeSlots(String doctor, java.time.OffsetDateTime desiredTime) {
-        java.time.Duration duration = getDefaultDuration("GENERAL");
-        List<java.time.OffsetDateTime> alternatives = new ArrayList<>();
-        for (int i = -4; i <= 4; i++) {
-            if (i == 0) continue;
-            java.time.OffsetDateTime slot = desiredTime.plusMinutes(30L * i);
-            java.time.OffsetDateTime slotEnd = slot.plus(duration).plusMinutes(BUFFER_MINUTES);
-            if (!appointmentRepository.existsByDoctorAndDateTimeOverlap(doctor, slot.toLocalDateTime(), slotEnd.toLocalDateTime())) {
-                alternatives.add(slot);
-            }
-        }
-        return alternatives.stream()
-                .sorted(java.util.Comparator.comparing(slot -> Math.abs(java.time.Duration.between(desiredTime, slot).toMinutes())))
-                .toList();
-    }
-
-    @Override
     public TimeSlotConflictDTO checkTimeSlotConflict(String doctor, OffsetDateTime desiredTime, Long excludeId) {
         Duration duration = getDefaultDuration("GENERAL");
-        LocalDateTime start = desiredTime.toLocalDateTime();
+        ZonedDateTime local = desiredTime.atZoneSameInstant(CLINIC_ZONE);
+        LocalDateTime start = local.toLocalDateTime();
         LocalDateTime end = start.plus(duration).plusMinutes(BUFFER_MINUTES);
         List<Appointment> potential = appointmentRepository.findByDoctorAndDateTimeBetween(doctor, start, end);
         List<AppointmentResponseDTO> conflicts = new ArrayList<>();
