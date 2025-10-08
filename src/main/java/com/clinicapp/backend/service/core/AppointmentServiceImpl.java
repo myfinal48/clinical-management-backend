@@ -104,7 +104,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .type(NotificationType.NEW_APPOINTMENT)
                 .channel(NotificationChannel.IN_APP)
                 .subject("New appointment")
-                .senderId(dto.getPatientId())
                 .content("A new appointment has been created.")
                 .userIds(Set.of(Long.valueOf(dto.getDoctorId())))
                 .build()
@@ -205,7 +204,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Transactional
     public AppointmentResponseDTO updateAppointment(Long id, AppointmentRequestDTO dto) {
         Appointment appointment = appointmentRepository.findById(id).orElseThrow();
-        appointment.setDateTime(dto.getDateTime().toLocalDateTime());
+        ZonedDateTime local = dto.getDateTime().atZoneSameInstant(CLINIC_ZONE);
+        appointment.setDateTime(local.toLocalDateTime());
         appointment.setReason(dto.getReason());
         appointment.setDoctor(dto.getDoctorId());
         appointment.setRoom(dto.getRoom());
@@ -231,7 +231,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         Optional<Appointment> optAppointment = appointmentRepository.findById(id);
         if (optAppointment.isPresent()) {
             Appointment appointment = optAppointment.get();
-            long hoursLeft = Duration.between(LocalDateTime.now(), appointment.getDateTime()).toHours();
+            long hoursLeft = Duration.between(ZonedDateTime.now(CLINIC_ZONE).toLocalDateTime(), appointment.getDateTime()).toHours();
             appointment.setCancellationInitiator(initiatedBy);
             if (hoursLeft < CANCELLATION_DEADLINE_HOURS) {
                 if ("PATIENT".equalsIgnoreCase(initiatedBy)) {
@@ -273,6 +273,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public TimeSlotConflictDTO checkTimeSlotConflict(String doctor, OffsetDateTime desiredTime, Long excludeId) {
         Duration duration = getDefaultDuration("GENERAL");
         ZonedDateTime local = desiredTime.atZoneSameInstant(CLINIC_ZONE);

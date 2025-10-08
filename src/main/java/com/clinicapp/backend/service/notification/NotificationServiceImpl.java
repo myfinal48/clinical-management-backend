@@ -73,10 +73,12 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public NotificationDTO sendNotification(NotificationRequestDTO request) {
-        User sender = userRepository.findById(request.getSenderId())
-                .orElseThrow(() -> new ResourceNotFoundException("Sender not found"));
+        Long resolvedSenderId = request.getSenderId() != null ? request.getSenderId() : getCurrentUserId();
+        User sender = userRepository.findById(resolvedSenderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sender not found with id: " + resolvedSenderId));
 
         Set<User> recipients = getRecipients(request);
+
         Notification notification = createBaseNotification(request, sender);
         notification = notificationRepository.save(notification);
 

@@ -3,6 +3,8 @@ package com.clinicapp.backend;
 import com.clinicapp.backend.model.security.Role;
 import com.clinicapp.backend.model.security.User;
 import com.clinicapp.backend.repository.security.UserRepository;
+import jakarta.annotation.PostConstruct;
+import java.util.TimeZone;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -11,6 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 @SpringBootApplication
 @EnableScheduling
 @EnableAsync
@@ -22,6 +25,11 @@ public class ClinicalManagementBackendApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(ClinicalManagementBackendApplication.class, args);
+	}
+
+	@PostConstruct
+	public void initTimeZone() {
+		TimeZone.setDefault(TimeZone.getTimeZone("Africa/Douala"));
 	}
 
 	@Bean
